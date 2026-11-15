@@ -84,42 +84,95 @@ const FORCE_RTL_SELECTORS = [
  */
 export function buildWidgetCSS() {
     return `
+        @keyframes agRtlFadeIn {
+            from { opacity: 0; transform: translateY(-4px) scale(0.985); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
         #ag-rtl-panel {
-            transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.16s ease;
-            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+            transition: opacity 0.16s ease, transform 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+            animation: agRtlFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+            font-family: 'PersianOnlyFont', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+            max-height: calc(100vh - 76px);
+            overflow-y: auto;
+            scrollbar-width: thin;
         }
         #ag-rtl-panel * {
             box-sizing: border-box;
         }
         #ag-rtl-topbar-btn {
-            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+            font-family: 'PersianOnlyFont', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
             line-height: 1 !important;
+            transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease !important;
+        }
+        #ag-rtl-topbar-btn:hover {
+            border-color: rgba(56, 189, 248, 0.55) !important;
+            background: rgba(56, 189, 248, 0.1) !important;
+        }
+        #ag-rtl-topbar-btn.ag-rtl-floating {
+            background: color-mix(in srgb, var(--popover, var(--card, #18181b)) 88%, transparent) !important;
+            backdrop-filter: blur(12px) saturate(1.3);
+            -webkit-backdrop-filter: blur(12px) saturate(1.3);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28), 0 1px 3px rgba(0, 0, 0, 0.18) !important;
+            border: 1px solid var(--border, rgba(148, 163, 184, 0.26)) !important;
         }
         .ag-rtl-theme-panel {
-            background-color: var(--popover, var(--vscode-editorWidget-background, var(--card, #18181b))) !important;
+            background-color: color-mix(in srgb, var(--popover, var(--vscode-editorWidget-background, var(--card, #18181b))) 92%, transparent) !important;
+            backdrop-filter: blur(16px) saturate(1.35);
+            -webkit-backdrop-filter: blur(16px) saturate(1.35);
             color: var(--popover-foreground, var(--vscode-editorWidget-foreground, var(--foreground, #f4f4f5))) !important;
-            border: 1px solid var(--border, var(--vscode-widget-border, rgba(255, 255, 255, 0.14))) !important;
-            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.25) !important;
-            border-radius: 12px !important;
+            border: 1px solid var(--border, var(--vscode-widget-border, rgba(148, 163, 184, 0.22))) !important;
+            box-shadow: 0 18px 44px rgba(0, 0, 0, 0.44), 0 4px 12px rgba(0, 0, 0, 0.22) !important;
+            border-radius: 14px !important;
+        }
+        @media (prefers-color-scheme: light) {
+            .ag-rtl-theme-panel {
+                background-color: color-mix(in srgb, var(--popover, var(--vscode-editorWidget-background, var(--card, #ffffff))) 94%, transparent) !important;
+                color: var(--popover-foreground, var(--vscode-editorWidget-foreground, var(--foreground, #0f172a))) !important;
+                border-color: var(--border, rgba(15, 23, 42, 0.12)) !important;
+                box-shadow: 0 14px 36px rgba(15, 23, 42, 0.14), 0 2px 8px rgba(15, 23, 42, 0.06) !important;
+            }
+            #ag-rtl-topbar-btn.ag-rtl-floating {
+                background: color-mix(in srgb, var(--popover, var(--card, #ffffff)) 90%, transparent) !important;
+                color: var(--foreground, #0f172a) !important;
+                border-color: rgba(15, 23, 42, 0.14) !important;
+            }
+        }
+        .ag-rtl-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 2px 7px;
+            border-radius: 9999px;
+            font-size: 10px;
+            font-weight: 600;
+            background: rgba(16, 185, 129, 0.14);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.28);
+        }
+        .ag-rtl-badge[data-active="false"] {
+            background: rgba(148, 163, 184, 0.14);
+            color: var(--muted-foreground, #94a3b8);
+            border-color: rgba(148, 163, 184, 0.24);
         }
         .ag-rtl-sep {
             height: 1px;
-            background: var(--border, var(--vscode-widget-border, rgba(255, 255, 255, 0.12)));
-            margin: 8px 0;
+            background: var(--border, var(--vscode-widget-border, rgba(148, 163, 184, 0.16)));
+            margin: 9px 0;
             width: 100%;
         }
         .ag-rtl-input {
             font-size: 11px !important;
-            border-radius: 5px !important;
+            border-radius: 6px !important;
             padding: 4px 8px !important;
-            height: 25px !important;
-            width: 126px !important;
+            height: 26px !important;
+            width: 132px !important;
             direction: ltr !important;
             text-align: left !important;
-            background-color: var(--muted, var(--vscode-input-background, #27272a)) !important;
-            color: var(--foreground, var(--vscode-input-foreground, #f4f4f5)) !important;
-            border: 1px solid var(--border, var(--vscode-input-border, rgba(255, 255, 255, 0.16))) !important;
+            background-color: var(--muted, var(--vscode-input-background, rgba(148, 163, 184, 0.12))) !important;
+            color: var(--foreground, var(--vscode-input-foreground, inherit)) !important;
+            border: 1px solid var(--border, var(--vscode-input-border, rgba(148, 163, 184, 0.22))) !important;
             outline: none !important;
+            transition: border-color 0.14s ease !important;
         }
         .ag-rtl-input:focus {
             border-color: var(--color-primary, var(--vscode-focusBorder, #3b82f6)) !important;
@@ -127,9 +180,9 @@ export function buildWidgetCSS() {
         .ag-rtl-seg {
             display: inline-flex;
             align-items: center;
-            background: var(--muted, rgba(255, 255, 255, 0.08));
-            border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
-            border-radius: 6px;
+            background: var(--muted, rgba(148, 163, 184, 0.12));
+            border: 1px solid var(--border, rgba(148, 163, 184, 0.18));
+            border-radius: 7px;
             padding: 2px;
             gap: 2px;
         }
@@ -137,14 +190,14 @@ export function buildWidgetCSS() {
             border: none;
             background: transparent;
             color: inherit;
-            opacity: 0.72;
+            opacity: 0.75;
             font-size: 10px;
             font-weight: 600;
-            padding: 3px 7px;
-            border-radius: 4px;
+            padding: 3px 8px;
+            border-radius: 5px;
             cursor: pointer;
-            line-height: 1.2;
-            transition: background-color 0.12s ease, opacity 0.12s ease;
+            line-height: 1.25;
+            transition: background-color 0.12s ease, opacity 0.12s ease, color 0.12s ease;
         }
         .ag-rtl-seg-btn:hover {
             opacity: 1;
@@ -153,9 +206,10 @@ export function buildWidgetCSS() {
             background: var(--color-primary, var(--vscode-button-background, #2563eb));
             color: #ffffff;
             opacity: 1;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
         }
         .ag-rtl-range {
-            width: 82px;
+            width: 84px;
             accent-color: var(--color-primary, var(--vscode-button-background, #3b82f6));
             cursor: pointer;
         }
@@ -169,9 +223,9 @@ export function buildWidgetCSS() {
             font-size: 10px;
             font-weight: 600;
             line-height: 1;
-            color: var(--muted-foreground, #a1a1aa);
-            background-color: var(--muted, rgba(255, 255, 255, 0.08));
-            border: 1px solid var(--border, rgba(255, 255, 255, 0.15));
+            color: var(--muted-foreground, #94a3b8);
+            background-color: var(--muted, rgba(148, 163, 184, 0.12));
+            border: 1px solid var(--border, rgba(148, 163, 184, 0.22));
             border-radius: 4px;
         }
     `;
@@ -354,12 +408,30 @@ export function buildDynamicCSS(rawConfig, fontSource = '') {
             overflow-x: auto !important;
             overflow-y: hidden !important;
             max-width: 100% !important;
-            padding-block: 0.25em !important;
+            padding-block: 0.3em !important;
+            scrollbar-width: thin;
+        }
+        .katex-display::-webkit-scrollbar,
+        mjx-container[display="true"]::-webkit-scrollbar {
+            height: 5px;
+        }
+        .katex-display::-webkit-scrollbar-thumb,
+        mjx-container[display="true"]::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.32);
+            border-radius: 9999px;
         }
         .katex-display > .katex {
             display: block !important;
             text-align: ${cfg.mathDisplayAlign} !important;
             white-space: nowrap !important;
+        }
+
+        /* Subtle breathing space for inline math inside RTL paragraphs so Latin/math tokens don't touch Persian glyphs */
+        [dir="rtl"] .katex:not(.katex-display .katex),
+        [dir="rtl"] mjx-container:not([display="true"]),
+        [dir="rtl"] math:not([display="block"]) {
+            margin-inline: 0.14em;
+            vertical-align: baseline;
         }
 
         ${mathScaleRule}
@@ -457,7 +529,7 @@ export function buildDynamicCSS(rawConfig, fontSource = '') {
             padding-right: 2rem !important;
         }
 
-        /* RTL Blockquote Border Flip */
+        /* RTL Blockquote Border Flip + Subtle Tint */
         blockquote[dir="rtl"],
         [dir="rtl"] > blockquote:not([dir="ltr"]) {
             direction: rtl;
@@ -465,14 +537,27 @@ export function buildDynamicCSS(rawConfig, fontSource = '') {
             border-left-width: 0 !important;
             border-right-width: 3px !important;
             border-right-style: solid;
-            border-right-color: var(--border, rgba(148, 163, 184, 0.45));
-            padding-left: 0 !important;
-            padding-right: 1rem !important;
+            border-right-color: var(--color-primary, var(--border, rgba(56, 189, 248, 0.55)));
+            background: rgba(148, 163, 184, 0.06);
+            border-radius: 8px 2px 2px 8px;
+            padding: 0.35rem 1rem 0.35rem 0.75rem !important;
+        }
+
+        /* RTL Task Checkboxes & Details/Summary */
+        [dir="rtl"] > input[type="checkbox"],
+        li[dir="rtl"] input[type="checkbox"] {
+            margin-right: 0 !important;
+            margin-left: 0.45rem !important;
+        }
+        summary[dir="rtl"] {
+            direction: rtl;
+            text-align: right;
         }
 
         /* RTL Tables */
         table[dir="rtl"] {
             direction: rtl;
+            border-collapse: collapse;
         }
         table[dir="rtl"] th,
         table[dir="rtl"] td {

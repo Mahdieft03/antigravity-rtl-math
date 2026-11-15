@@ -35,6 +35,8 @@ export function buildSharedClientLib() {
 ${parts.join('\n\n')}
     root.__agRtlMathLib = {
         DEFAULT_CONFIG,
+        PRESETS,
+        applyPreset,
         sanitizeConfig,
         buildWidgetCSS,
         buildDynamicCSS,
@@ -54,8 +56,7 @@ ${parts.join('\n\n')}
 
 /**
  * Builds the Electron renderer bootstrap script for App (`mode: 'app'`) or IDE (`mode: 'ide'`).
- * Uses placeholders `__FONT_BASE64__`, `__RTL_CONFIG__`, `__HIDE_TRIGGER__` when `placeholderMode` is true,
- * or embeds concrete values when provided.
+ * Re-entrant & idempotent: if already mounted on the page, calling again ensures trigger/styles are alive.
  */
 export function buildElectronClientScript({
     mode = 'app',
@@ -71,8 +72,14 @@ export function buildElectronClientScript({
     return `${lib}
 (function() {
     try {
-        if (window.__ANTIGRAVITY_RTL_MATH_LOADED__) return;
-        window.__ANTIGRAVITY_RTL_MATH_LOADED__ = true;
+        if (window.__agRtlController) {
+            try {
+                window.__agRtlController.ensureMounted();
+            } catch (_) {}
+            return;
+        }
+        if (window.__ANTIGRAVITY_RTL_MATH_BOOTING__) return;
+        window.__ANTIGRAVITY_RTL_MATH_BOOTING__ = true;
 
         var fontBase64 = ${fontExpr};
         var rtlConfig = ${cfgExpr};
@@ -94,7 +101,8 @@ export function buildElectronClientScript({
                         document.querySelector('[contenteditable="true"]') ||
                         document.querySelector('.prose') ||
                         document.querySelector('.leading-relaxed') ||
-                        document.querySelector('[data-testid="conversation-view"]')
+                        document.querySelector('[data-testid="conversation-view"]') ||
+                        document.querySelector('[data-testid="titlebar-more-actions"]')
                     );
                 }
                 return document.body.children.length > 0;
@@ -104,7 +112,12 @@ export function buildElectronClientScript({
         }
 
         function boot() {
-            window.__agRtlMathLib.mountRtlMathController({
+            if (window.__agRtlController) {
+                window.__agRtlController.ensureMounted();
+                return;
+            }
+            window.__ANTIGRAVITY_RTL_MATH_LOADED__ = true;
+            window.__agRtlController = window.__agRtlMathLib.mountRtlMathController({
                 doc: document,
                 win: window,
                 mode: mode,
@@ -115,6 +128,7 @@ export function buildElectronClientScript({
                     console.log('SAVE_RTL_CONFIG|' + JSON.stringify(nextCfg));
                 }
             });
+            window.__ANTIGRAVITY_RTL_MATH_BOOTING__ = false;
         }
 
         if (isUiReady()) {
@@ -142,9 +156,10 @@ export function buildElectronClientScript({
             obs = new MutationObserver(function() { tryBoot(false); });
             obs.observe(document.documentElement || document.body, { childList: true, subtree: true });
         } catch (_) {}
-        timer = setInterval(function() { tryBoot(false); }, 200);
+        timer = setInterval(function() { tryBoot(false); }, 180);
         fallbackTimer = setTimeout(function() { tryBoot(true); }, 3500);
     } catch (err) {
+        window.__ANTIGRAVITY_RTL_MATH_BOOTING__ = false;
         console.error('[Antigravity RTL Math] Boot error:', err);
     }
 })();`;
@@ -158,7 +173,10 @@ export function buildRemoteExtensionScript() {
     return `${lib}
 (function() {
     try {
-        if (window.__ANTIGRAVITY_RTL_MATH_LOADED__) return;
+        if (window.__agRtlController) {
+            try { window.__agRtlController.ensureMounted(); } catch (_) {}
+            return;
+        }
         if (!document || !document.body) return;
         window.__ANTIGRAVITY_RTL_MATH_LOADED__ = true;
 
@@ -171,7 +189,7 @@ export function buildRemoteExtensionScript() {
                 ? stored.agRtlConfig
                 : (stored && typeof stored.rtl === 'boolean' ? { isRTL: stored.rtl } : {});
 
-            window.__agRtlMathLib.mountRtlMathController({
+            window.__agRtlController = window.__agRtlMathLib.mountRtlMathController({
                 doc: document,
                 win: window,
                 mode: 'remote',

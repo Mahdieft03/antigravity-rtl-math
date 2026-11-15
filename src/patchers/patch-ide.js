@@ -9,6 +9,7 @@ import picocolors from 'picocolors';
 import ora from 'ora';
 import prompts from 'prompts';
 import { buildElectronClientScript } from '../core/client-bundle.js';
+import { isTempPath, updatePatchMeta } from '../core/meta.js';
 import { checkRunningAntigravity } from './process-check.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -111,18 +112,22 @@ export function getIdeStatus(appDir = detectIdeAppPath()) {
     }
     const { outDir, mainJsPath, mainJsBak } = idePaths(appDir);
     let patchState = 'clean';
+    let hookRevision = 0;
     try {
         const mainCode = fs.readFileSync(mainJsPath, 'utf8');
         if (mainCode.includes(HOOK_IMPORT)) {
             const clientPath = path.join(outDir, 'antigravity-rtl-client.js');
+            const hookPath = path.join(outDir, 'antigravity-rtl-main.js');
             if (fs.existsSync(clientPath) && fs.readFileSync(clientPath, 'utf8').includes('__agRtlMathLib')) {
                 patchState = 'rtl-math';
+                hookRevision = fs.existsSync(hookPath) && fs.readFileSync(hookPath, 'utf8').includes('attachedWc') ? 3 : 2;
             } else {
                 patchState = 'legacy-rtl';
+                hookRevision = 1;
             }
         }
     } catch (_) {}
-    return { found: true, path: appDir, patchState, hasBackup: fs.existsSync(mainJsBak) };
+    return { found: true, path: appDir, patchState, hookRevision, hasBackup: fs.existsSync(mainJsBak) };
 }
 
 export async function getIdeAppPath() {
@@ -201,6 +206,7 @@ export async function restoreIde(appDir, { exitOnError = true, checkProcess = tr
             fs.rmSync(f, { force: true });
         }
 
+        try { if (!isTempPath(appDir)) updatePatchMeta('ide', null); } catch (_) {}
         spinner.succeed('Successfully restored original Antigravity IDE!\n');
         return true;
     } catch (e) {
@@ -267,6 +273,10 @@ export async function patchIde(appDir, { exitOnError = true, checkProcess = true
                 fs.writeFileSync(file, content, 'utf8');
             }
         }
+
+        try {
+            updatePatchMeta('ide', { path: appDir, patchVersion: '3.0.0', hookRevision: 3 });
+        } catch (_) {}
 
         spinner.succeed('Successfully patched Antigravity IDE with RTL + Math Isolation!');
         if (!silent) {

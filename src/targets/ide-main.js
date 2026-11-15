@@ -13,12 +13,18 @@ const __dirname = path.dirname(__filename);
 const CONFIG_FILE = path.join(os.homedir(), '.antigravity-rtl.json');
 const LOG_FILE = path.join(os.tmpdir(), 'antigravity-rtl-math.log');
 const SAFE_FONT_RE = /^[\p{L}\p{N} ._-]{0,64}$/u;
+const attachedWc = new WeakSet();
 
 function log(...args) {
     try {
         const line = `[${new Date().toISOString()}] ` + args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ') + '\n';
         fs.appendFileSync(LOG_FILE, line);
     } catch (_) {}
+}
+
+function isIgnorableExecError(err) {
+    const msg = err && err.message ? err.message : String(err || '');
+    return /destroyed|ERR_ABORTED|aborted|navigat/i.test(msg);
 }
 
 function sanitizeConfig(raw) {
@@ -97,6 +103,8 @@ function buildClientPayload(hideTrigger) {
 }
 
 function attachConsoleSaver(wc) {
+    if (!wc || attachedWc.has(wc)) return;
+    attachedWc.add(wc);
     wc.on('console-message', (_e, ...args) => {
         let msg = '';
         if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null) {
@@ -130,49 +138,63 @@ function isSubframeTargetUrl(url) {
 }
 
 app.on('browser-window-created', (_event, win) => {
-    attachConsoleSaver(win.webContents);
+    const wc = win.webContents;
+    attachConsoleSaver(wc);
 
-    win.webContents.on('dom-ready', async () => {
+    const injectMain = async () => {
         try {
-            const url = win.webContents.getURL() || '';
+            if (wc.isDestroyed?.()) return;
+            const url = wc.getURL() || '';
             if (!isWorkbenchUrl(url)) return;
             const code = buildClientPayload(false);
             if (!code) return;
-            await win.webContents.executeJavaScript(code);
-            log('Injected into main window:', url);
+            await wc.executeJavaScript(code);
         } catch (err) {
-            log('Main window injection error:', err.message);
+            if (!isIgnorableExecError(err)) log('Main window injection error:', err.message);
         }
-    });
+    };
 
-    win.webContents.on('did-frame-finish-load', () => {
+    const injectSubframes = () => {
         try {
-            const frames = win.webContents.mainFrame?.framesInSubtree;
+            if (wc.isDestroyed?.()) return;
+            const frames = wc.mainFrame?.framesInSubtree;
             if (!Array.isArray(frames)) return;
             const code = buildClientPayload(true);
             if (!code) return;
             for (const f of frames) {
-                if (f !== win.webContents.mainFrame && isSubframeTargetUrl(f.url)) {
-                    Promise.resolve(f.executeJavaScript(code)).catch(() => {});
+                if (f !== wc.mainFrame && isSubframeTargetUrl(f.url)) {
+                    Promise.resolve(f.executeJavaScript(code)).catch((err) => {
+                        if (!isIgnorableExecError(err)) log('Subframe injection error:', err.message);
+                    });
                 }
             }
         } catch (_) {}
-    });
+    };
+
+    wc.on('dom-ready', injectMain);
+    wc.on('did-finish-load', injectMain);
+    wc.on('did-navigate-in-page', injectMain);
+    wc.on('did-frame-finish-load', injectSubframes);
 });
 
 app.on('web-contents-created', (_event, wc) => {
     try {
         if (typeof wc.getType === 'function' && wc.getType() === 'webview') {
-            wc.on('dom-ready', async () => {
+            attachConsoleSaver(wc);
+            const injectWebview = async () => {
                 try {
+                    if (wc.isDestroyed?.()) return;
                     const url = wc.getURL() || '';
                     if (!isSubframeTargetUrl(url)) return;
                     const code = buildClientPayload(true);
                     if (!code) return;
                     await wc.executeJavaScript(code);
-                    log('Injected into webview:', url);
-                } catch (_) {}
-            });
+                } catch (err) {
+                    if (!isIgnorableExecError(err)) log('Webview injection error:', err.message);
+                }
+            };
+            wc.on('dom-ready', injectWebview);
+            wc.on('did-finish-load', injectWebview);
         }
     } catch (_) {}
 });

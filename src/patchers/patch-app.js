@@ -10,6 +10,7 @@ import ora from 'ora';
 import prompts from 'prompts';
 import * as asar from '@electron/asar';
 import { buildElectronClientScript } from '../core/client-bundle.js';
+import { isTempPath, updatePatchMeta } from '../core/meta.js';
 import { renderAppHookSnippet } from '../targets/app-hook.js';
 import { checkRunningAntigravity } from './process-check.js';
 
@@ -77,20 +78,43 @@ export function hasAppBackup(asarPath) {
     return asarPath ? fs.existsSync(asarPath + '.bak') : false;
 }
 
+export function readInstalledAppVersion(asarPath) {
+    try {
+        const versionFile = path.resolve(path.dirname(asarPath), '..', 'version');
+        if (fs.existsSync(versionFile)) {
+            const v = fs.readFileSync(versionFile, 'utf8').trim();
+            if (v) return v;
+        }
+    } catch (_) {}
+    try {
+        asar.uncache(asarPath);
+        const pkg = JSON.parse(asar.extractFile(asarPath, 'package.json').toString('utf8'));
+        if (pkg && pkg.version) return String(pkg.version);
+    } catch (_) {}
+    return null;
+}
+
 export function getAppStatus(asarPath = detectAppAsarPath()) {
     if (!asarPath || !fs.existsSync(asarPath)) {
-        return { found: false, path: null, patchState: 'not-found', hasBackup: false, backupClean: false };
+        return { found: false, path: null, patchState: 'not-found', hookRevision: 0, appVersion: null, hasBackup: false, backupClean: false };
     }
     const backupPath = asarPath + '.bak';
     const hasBackup = fs.existsSync(backupPath);
     let patchState = 'unknown';
+    let hookRevision = 0;
     let backupClean = false;
 
     try {
         const utils = readUtils(asarPath);
-        if (utils.includes(PATCH_START)) patchState = 'rtl-math';
-        else if (utils.includes(LEGACY_PATCH_START)) patchState = 'legacy-rtl';
-        else patchState = 'clean';
+        if (utils.includes(PATCH_START)) {
+            patchState = 'rtl-math';
+            hookRevision = utils.includes('__agRtlAppHooked') ? 3 : 2;
+        } else if (utils.includes(LEGACY_PATCH_START)) {
+            patchState = 'legacy-rtl';
+            hookRevision = 1;
+        } else {
+            patchState = 'clean';
+        }
     } catch (_) {}
 
     if (hasBackup) {
@@ -100,7 +124,15 @@ export function getAppStatus(asarPath = detectAppAsarPath()) {
         } catch (_) {}
     }
 
-    return { found: true, path: asarPath, patchState, hasBackup, backupClean };
+    return {
+        found: true,
+        path: asarPath,
+        patchState,
+        hookRevision,
+        appVersion: readInstalledAppVersion(asarPath),
+        hasBackup,
+        backupClean
+    };
 }
 
 export async function getAppAsarPath() {
@@ -152,6 +184,7 @@ export async function restoreApp(asarPath, { exitOnError = true, checkProcess = 
         fs.copyFileSync(backupPath, asarPath);
         asar.uncache(asarPath);
         fs.unlinkSync(backupPath);
+        try { if (!isTempPath(asarPath)) updatePatchMeta('app', null); } catch (_) {}
         spinner.succeed('Successfully restored original Antigravity (Standalone App)!\n');
         return true;
     } catch (e) {
@@ -164,13 +197,15 @@ export async function restoreApp(asarPath, { exitOnError = true, checkProcess = 
 
 export async function patchApp(asarPath, { exitOnError = true, checkProcess = true, silent = false } = {}) {
     const backupPath = asarPath + '.bak';
-    const extractDir = path.join(path.dirname(asarPath), 'app-extracted-rtl-math-temp');
+    let extractDir = null;
 
     if (checkProcess) {
         const proc = checkRunningAntigravity('app');
         if (proc.running) {
-            console.error(yellow(`⚠ Antigravity is currently running (${proc.processes.join(', ')}).`));
-            console.error(yellow('  Please close Antigravity completely first so app.asar is not locked, then run again.\n'));
+            if (!silent) {
+                console.error(yellow(`⚠ Antigravity is currently running (${proc.processes.join(', ')}).`));
+                console.error(yellow('  Please close Antigravity completely first so app.asar is not locked, then run again.\n'));
+            }
             if (exitOnError) process.exit(1);
             return false;
         }
@@ -181,6 +216,7 @@ export async function patchApp(asarPath, { exitOnError = true, checkProcess = tr
 
     try {
         fs.accessSync(path.dirname(asarPath), fs.constants.W_OK);
+        extractDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ag-rtl-asar-'));
 
         failLabel = 'Failed to read app.asar.';
         const currentUtils = readUtils(asarPath);
@@ -246,7 +282,18 @@ export async function patchApp(asarPath, { exitOnError = true, checkProcess = tr
         spinner.text = 'Repacking app.asar...';
         await asar.createPackage(extractDir, asarPath);
         asar.uncache(asarPath);
-        fs.rmSync(extractDir, { recursive: true, force: true });
+
+        try {
+            const st = fs.statSync(asarPath);
+            updatePatchMeta('app', {
+                path: asarPath,
+                patchVersion: '3.0.0',
+                hookRevision: 3,
+                appVersion: readInstalledAppVersion(asarPath),
+                asarSize: st.size,
+                asarMtimeMs: st.mtimeMs
+            });
+        } catch (_) {}
 
         spinner.succeed('Successfully patched Antigravity (Standalone App) with RTL + Math Isolation!');
         if (!silent) {
@@ -256,7 +303,6 @@ export async function patchApp(asarPath, { exitOnError = true, checkProcess = tr
         return true;
     } catch (e) {
         spinner.fail(failLabel);
-        fs.rmSync(extractDir, { recursive: true, force: true });
         if (e.code === 'EBUSY' || e.code === 'EPERM' || e.code === 'EACCES') {
             console.error(red('\nSystem Error: ' + e.message));
             if (os.platform() === 'win32') {
@@ -271,5 +317,9 @@ export async function patchApp(asarPath, { exitOnError = true, checkProcess = tr
         }
         if (exitOnError) process.exit(1);
         return false;
+    } finally {
+        if (extractDir) {
+            try { fs.rmSync(extractDir, { recursive: true, force: true }); } catch (_) {}
+        }
     }
 }

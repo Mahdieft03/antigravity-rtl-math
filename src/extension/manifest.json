@@ -2,7 +2,11 @@
   "manifest_version": 3,
   "name": "Antigravity RTL + Math",
   "description": "Smart Right-to-Left layout & Math Isolation (KaTeX, MathJax, MathML) for Antigravity Remote Control in the browser.",
-  "version": "2.0.0",
+  "version": "3.0.0",
+  "icons": {
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
   "permissions": ["storage"],
   "content_scripts": [
     {

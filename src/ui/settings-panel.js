@@ -4,7 +4,7 @@
  * Remote Control Browser Extension, and the local Playground.
  */
 
-import { DEFAULT_CONFIG, sanitizeConfig } from '../core/config.js';
+import { DEFAULT_CONFIG, PRESETS, PRESET_NAMES, applyPreset, sanitizeConfig } from '../core/config.js';
 import { buildDynamicCSS, buildWidgetCSS } from '../core/rtl-math-css.js';
 import { applyRtlMathPass, bindToggleShortcut, watchDom } from '../core/rtl-math-engine.js';
 
@@ -13,6 +13,12 @@ const LABELS = {
         title: 'Antigravity RTL + Math',
         enabled: 'Enabled',
         disabled: 'Disabled',
+        badgeOn: 'Shield ON',
+        badgeOff: 'RTL Off',
+        presets: 'Preset',
+        presetDefault: 'Balanced',
+        presetReading: 'Reading',
+        presetCompact: 'Compact',
         dirMode: 'Direction Mode',
         smart: 'Smart',
         auto: 'Auto',
@@ -41,6 +47,12 @@ const LABELS = {
         title: 'راست‌چین + فرمول ریاضی',
         enabled: 'فعال',
         disabled: 'غیرفعال',
+        badgeOn: 'محافظ روشن',
+        badgeOff: 'خاموش',
+        presets: 'حالت آماده',
+        presetDefault: 'متعادل',
+        presetReading: 'مطالعه',
+        presetCompact: 'فشرده',
         dirMode: 'حالت جهت‌دهی',
         smart: 'هوشمند',
         auto: 'خودکار',
@@ -147,6 +159,32 @@ function createSwitch(doc, id, checked, onChange) {
     };
 }
 
+function detectActivePreset(cfg) {
+    for (const name of PRESET_NAMES) {
+        const p = PRESETS[name];
+        const match = Object.keys(p).every(k => String(cfg[k]) === String(p[k]));
+        if (match) return name;
+    }
+    return null;
+}
+
+function findVisibleCluster(doc, win) {
+    const candidates = [
+        doc.querySelector('[data-testid="titlebar-more-actions"]')?.parentElement,
+        doc.querySelector('[data-testid="install-editor"]')?.parentElement
+    ];
+    for (const el of candidates) {
+        if (!el) continue;
+        try {
+            if (typeof win.getComputedStyle === 'function' && win.getComputedStyle(el).display === 'none') {
+                continue;
+            }
+        } catch (_) {}
+        return el;
+    }
+    return null;
+}
+
 /**
  * Initializes the full RTL + Math controller and settings UI in the given window/document.
  */
@@ -160,24 +198,36 @@ export function mountRtlMathController({
     fontBase64 = '',
     onSaveConfig = null
 } = {}) {
+    const _setTimeout = typeof win.setTimeout === 'function' ? win.setTimeout.bind(win) : (typeof setTimeout === 'function' ? setTimeout : null);
+    const _setInterval = typeof win.setInterval === 'function' ? win.setInterval.bind(win) : (typeof setInterval === 'function' ? setInterval : null);
+    const _clearInterval = typeof win.clearInterval === 'function' ? win.clearInterval.bind(win) : (typeof clearInterval === 'function' ? clearInterval : null);
+
     const state = sanitizeConfig(initialConfig);
     const resolvedFontSource = fontSource || fontBase64;
+    let wStyle = null;
+    let dynStyle = null;
 
-    // 1. Inject permanent widget stylesheet
-    if (!doc.getElementById('ag-rtl-widget-style')) {
-        const wStyle = doc.createElement('style');
-        wStyle.id = 'ag-rtl-widget-style';
-        wStyle.textContent = buildWidgetCSS();
-        (doc.head || doc.documentElement).appendChild(wStyle);
+    function ensureStylesMounted() {
+        const head = doc.head || doc.documentElement || doc.body;
+        if (!head) return;
+
+        wStyle = doc.getElementById('ag-rtl-widget-style');
+        if (!wStyle) {
+            wStyle = doc.createElement('style');
+            wStyle.id = 'ag-rtl-widget-style';
+            wStyle.textContent = buildWidgetCSS();
+            head.appendChild(wStyle);
+        }
+
+        dynStyle = doc.getElementById('ag-rtl-dynamic-style');
+        if (!dynStyle) {
+            dynStyle = doc.createElement('style');
+            dynStyle.id = 'ag-rtl-dynamic-style';
+            head.appendChild(dynStyle);
+        }
     }
 
-    // 2. Dynamic RTL + Math stylesheet
-    let dynStyle = doc.getElementById('ag-rtl-dynamic-style');
-    if (!dynStyle) {
-        dynStyle = doc.createElement('style');
-        dynStyle.id = 'ag-rtl-dynamic-style';
-        (doc.head || doc.documentElement).appendChild(dynStyle);
-    }
+    ensureStylesMounted();
 
     function save() {
         if (typeof onSaveConfig === 'function') {
@@ -188,7 +238,10 @@ export function mountRtlMathController({
     }
 
     function applyAll() {
-        dynStyle.textContent = buildDynamicCSS(state, resolvedFontSource);
+        ensureStylesMounted();
+        if (dynStyle) {
+            dynStyle.textContent = buildDynamicCSS(state, resolvedFontSource);
+        }
         applyRtlMathPass(doc, state);
         if (typeof win.dispatchEvent === 'function' && typeof win.Event === 'function') {
             try {
@@ -197,14 +250,14 @@ export function mountRtlMathController({
         }
     }
 
-    // 3. Build Pure-DOM Settings Panel
+    // Build Pure-DOM Settings Panel
     const existingPanel = doc.getElementById('ag-rtl-panel');
     if (existingPanel) existingPanel.remove();
 
     const panel = createEl(
         doc,
         'div',
-        'position:fixed;z-index:2147483645;width:296px;padding:13px;display:none;direction:ltr;text-align:left;font-size:12px;user-select:none;',
+        'position:fixed;z-index:2147483645;width:308px;padding:13px 14px;display:none;direction:ltr;text-align:left;font-size:12px;user-select:none;',
         null,
         { id: 'ag-rtl-panel', className: 'ag-rtl-theme-panel' }
     );
@@ -216,7 +269,7 @@ export function mountRtlMathController({
     const langBtn = createEl(
         doc,
         'button',
-        'border:1px solid var(--border,rgba(255,255,255,0.16));background:transparent;color:inherit;border-radius:4px;font-size:10px;font-weight:600;padding:2px 6px;cursor:pointer;opacity:0.85;',
+        'border:1px solid var(--border,rgba(148,163,184,0.25));background:transparent;color:inherit;border-radius:5px;font-size:10px;font-weight:600;padding:2px 6px;cursor:pointer;opacity:0.88;',
         state.uiLang === 'fa' ? 'EN' : 'فا',
         { id: 'ag-rtl-lang-btn', type: 'button', title: 'Switch panel language (EN/FA)' }
     );
@@ -231,21 +284,44 @@ export function mountRtlMathController({
         '✕',
         { id: 'ag-rtl-close-btn', type: 'button' }
     );
-    const headerRight = createEl(doc, 'div', 'display:flex;align-items:center;gap:6px;', [langBtn, kbdWrap, closeBtn]);
+    const headerRight = createEl(doc, 'div', 'display:flex;align-items:center;gap:5px;', [langBtn, kbdWrap, closeBtn]);
     panel.appendChild(createEl(doc, 'div', 'display:flex;align-items:center;justify-content:space-between;gap:8px;', [titleSpan, headerRight]));
     panel.appendChild(createEl(doc, 'div', null, null, { className: 'ag-rtl-sep' }));
 
-    // Master toggle row
+    // Master toggle row + status pill
     const masterLabel = createEl(doc, 'span', 'font-weight:600;font-size:12px;');
+    const statusBadge = createEl(doc, 'span', null, '', { id: 'ag-rtl-status-badge', className: 'ag-rtl-badge' });
+    const masterLeft = createEl(doc, 'div', 'display:flex;align-items:center;gap:7px;', [masterLabel, statusBadge]);
     const masterSwitch = createSwitch(doc, 'ag-rtl-master-btn', state.isRTL, () => {
         state.isRTL = !state.isRTL;
         save();
         syncUI();
     });
-    panel.appendChild(createEl(doc, 'div', 'display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;', [masterLabel, masterSwitch.btn]));
+    panel.appendChild(createEl(doc, 'div', 'display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;', [masterLeft, masterSwitch.btn]));
 
-    // Body container (dimmed when RTL disabled, except math shield info)
     const bodyBox = createEl(doc, 'div', 'display:flex;flex-direction:column;gap:8px;transition:opacity 0.15s ease;', null, { id: 'ag-rtl-body' });
+
+    // Quick Presets row
+    const presetLabel = createEl(doc, 'span', 'font-size:11px;opacity:0.85;');
+    const presetButtons = {};
+    const presetSeg = createEl(doc, 'div', null, null, { className: 'ag-rtl-seg' });
+    for (const pName of PRESET_NAMES) {
+        const b = createEl(doc, 'button', null, pName, {
+            id: `ag-rtl-preset-${pName}`,
+            type: 'button',
+            className: 'ag-rtl-seg-btn',
+            'data-active': 'false'
+        });
+        b.addEventListener('click', () => {
+            Object.assign(state, applyPreset(state, pName));
+            syncInputsFromState();
+            save();
+            syncUI();
+        });
+        presetButtons[pName] = b;
+        presetSeg.appendChild(b);
+    }
+    bodyBox.appendChild(createEl(doc, 'div', 'display:flex;align-items:center;justify-content:space-between;gap:6px;', [presetLabel, presetSeg]));
 
     // Direction Mode segmented buttons
     const dirLabel = createEl(doc, 'span', 'font-size:11px;opacity:0.85;');
@@ -314,7 +390,7 @@ export function mountRtlMathController({
 
     // Math Scale slider
     const mathScaleLabel = createEl(doc, 'span', 'font-size:11px;opacity:0.85;');
-    const mathScaleVal = createEl(doc, 'span', 'font-size:10px;opacity:0.65;min-width:28px;text-align:right;', `${state.mathScale}x`);
+    const mathScaleVal = createEl(doc, 'span', 'font-size:10px;opacity:0.65;min-width:30px;text-align:right;', `${state.mathScale}x`);
     const mathScaleInput = createEl(doc, 'input', null, null, {
         id: 'ag-rtl-math-scale-input',
         type: 'range',
@@ -330,8 +406,9 @@ export function mountRtlMathController({
         title: 'Reset to 1.0x'
     });
     mathScaleInput.addEventListener('input', (e) => {
-        state.mathScale = e.target.value;
+        state.mathScale = sanitizeConfig({ mathScale: e.target.value }).mathScale;
         mathScaleVal.textContent = `${state.mathScale}x`;
+        updatePresetHighlight();
         save();
         applyAll();
     });
@@ -339,6 +416,7 @@ export function mountRtlMathController({
         state.mathScale = DEFAULT_CONFIG.mathScale;
         mathScaleInput.value = state.mathScale;
         mathScaleVal.textContent = `${state.mathScale}x`;
+        updatePresetHighlight();
         save();
         applyAll();
     });
@@ -384,8 +462,9 @@ export function mountRtlMathController({
     const lhInput = createEl(doc, 'input', null, null, { id: 'ag-rtl-lh-input', type: 'range', min: '1.2', max: '2.5', step: '0.1', value: state.lh, className: 'ag-rtl-range' });
     const lhReset = createEl(doc, 'button', 'background:none;border:none;color:inherit;opacity:0.6;cursor:pointer;font-size:11px;padding:0 2px;', '↺', { id: 'ag-rtl-lh-reset', type: 'button', title: 'Reset to 1.6' });
     lhInput.addEventListener('input', (e) => {
-        state.lh = e.target.value;
+        state.lh = sanitizeConfig({ lh: e.target.value }).lh;
         lhVal.textContent = state.lh;
+        updatePresetHighlight();
         save();
         applyAll();
     });
@@ -393,6 +472,7 @@ export function mountRtlMathController({
         state.lh = DEFAULT_CONFIG.lh;
         lhInput.value = state.lh;
         lhVal.textContent = state.lh;
+        updatePresetHighlight();
         save();
         applyAll();
     });
@@ -407,8 +487,9 @@ export function mountRtlMathController({
     const fsInput = createEl(doc, 'input', null, null, { id: 'ag-rtl-fs-input', type: 'range', min: '11', max: '24', step: '1', value: state.fs, className: 'ag-rtl-range' });
     const fsReset = createEl(doc, 'button', 'background:none;border:none;color:inherit;opacity:0.6;cursor:pointer;font-size:11px;padding:0 2px;', '↺', { id: 'ag-rtl-fs-reset', type: 'button', title: 'Reset to 16px' });
     fsInput.addEventListener('input', (e) => {
-        state.fs = e.target.value;
+        state.fs = sanitizeConfig({ fs: e.target.value }).fs;
         fsVal.textContent = `${state.fs}px`;
+        updatePresetHighlight();
         save();
         applyAll();
     });
@@ -416,6 +497,7 @@ export function mountRtlMathController({
         state.fs = DEFAULT_CONFIG.fs;
         fsInput.value = state.fs;
         fsVal.textContent = `${state.fs}px`;
+        updatePresetHighlight();
         save();
         applyAll();
     });
@@ -427,17 +509,7 @@ export function mountRtlMathController({
     panel.appendChild(bodyBox);
     panel.appendChild(createEl(doc, 'div', null, null, { className: 'ag-rtl-sep' }));
 
-    // Footer Reset Defaults
-    const resetAllBtn = createEl(
-        doc,
-        'button',
-        'width:100%;padding:5px 8px;border-radius:6px;border:1px solid var(--border,rgba(255,255,255,0.12));background:transparent;color:inherit;font-size:11px;cursor:pointer;opacity:0.8;',
-        '',
-        { id: 'ag-rtl-reset-all', type: 'button' }
-    );
-    resetAllBtn.addEventListener('click', () => {
-        const keepLang = state.uiLang;
-        Object.assign(state, DEFAULT_CONFIG, { uiLang: keepLang });
+    function syncInputsFromState() {
         faInput.value = state.faFont;
         enInput.value = state.enFont;
         codeInput.value = state.codeFont;
@@ -447,17 +519,44 @@ export function mountRtlMathController({
         fsVal.textContent = `${state.fs}px`;
         mathScaleInput.value = state.mathScale;
         mathScaleVal.textContent = `${state.mathScale}x`;
+    }
+
+    function updatePresetHighlight() {
+        const active = detectActivePreset(state);
+        for (const pName of PRESET_NAMES) {
+            presetButtons[pName].setAttribute('data-active', String(active === pName));
+        }
+    }
+
+    // Footer Reset Defaults
+    const resetAllBtn = createEl(
+        doc,
+        'button',
+        'width:100%;padding:5px 8px;border-radius:7px;border:1px solid var(--border,rgba(148,163,184,0.22));background:transparent;color:inherit;font-size:11px;font-weight:500;cursor:pointer;opacity:0.86;',
+        '',
+        { id: 'ag-rtl-reset-all', type: 'button' }
+    );
+    resetAllBtn.addEventListener('click', () => {
+        const keepLang = state.uiLang;
+        Object.assign(state, DEFAULT_CONFIG, { uiLang: keepLang });
+        syncInputsFromState();
         save();
         syncUI();
     });
     panel.appendChild(resetAllBtn);
 
-    // Trigger elements (Topbar / Statusbar / Floating)
+    // Trigger elements (Topbar / Statusbar / Safe Draggable Floating Pill)
     let topbarBtn = null;
     let statusDot = null;
     let statusbarBtn = null;
+    let draggedPos = null;
+    let suppressNextClick = false;
+    let dockRetryTimer = null;
+    let dockRetryAttempts = 0;
 
     function positionPanel() {
+        const vw = win.innerWidth || 1024;
+        const vh = win.innerHeight || 768;
         if (mode === 'ide' && statusbarBtn && doc.body.contains(statusbarBtn)) {
             panel.style.top = 'auto';
             panel.style.bottom = '28px';
@@ -468,15 +567,17 @@ export function mountRtlMathController({
         if (topbarBtn && typeof topbarBtn.getBoundingClientRect === 'function' && doc.body.contains(topbarBtn)) {
             const rect = topbarBtn.getBoundingClientRect();
             if (rect.width > 0 && rect.height > 0) {
-                panel.style.top = `${Math.round(rect.bottom + 6)}px`;
-                panel.style.right = `${Math.max(8, Math.round((win.innerWidth || 1024) - rect.right))}px`;
+                const topPx = Math.min(Math.max(8, Math.round(rect.bottom + 8)), Math.max(8, vh - 160));
+                const rightPx = Math.min(Math.max(8, Math.round(vw - rect.right)), Math.max(8, vw - 320));
+                panel.style.top = `${topPx}px`;
+                panel.style.right = `${rightPx}px`;
                 panel.style.bottom = 'auto';
                 panel.style.left = 'auto';
                 return;
             }
         }
-        panel.style.top = '48px';
-        panel.style.right = '14px';
+        panel.style.top = '82px';
+        panel.style.right = '16px';
         panel.style.bottom = 'auto';
         panel.style.left = 'auto';
     }
@@ -492,9 +593,20 @@ export function mountRtlMathController({
         }
     }
 
+    function stopDockRetry() {
+        if (dockRetryTimer && _clearInterval) {
+            _clearInterval(dockRetryTimer);
+            dockRetryTimer = null;
+        }
+    }
+
     function ensureTriggerMounted() {
-        if (!doc.body || hideTrigger) return;
-        if (!doc.body.contains(panel)) doc.body.appendChild(panel);
+        ensureStylesMounted();
+        if (!doc.body) return;
+        if (!hideTrigger && !doc.body.contains(panel)) {
+            doc.body.appendChild(panel);
+        }
+        if (hideTrigger) return;
 
         if (mode === 'ide') {
             const statusTarget =
@@ -523,14 +635,12 @@ export function mountRtlMathController({
                     statusTarget.prepend(statusbarBtn);
                 }
                 if (topbarBtn && topbarBtn.parentElement) topbarBtn.remove();
+                stopDockRetry();
                 return;
             }
         }
 
-        // App / Remote / IDE-without-statusbar fallback: mount in topbar cluster or floating pill
-        const cluster =
-            doc.querySelector('[data-testid="titlebar-more-actions"]')?.parentElement ||
-            doc.querySelector('[data-testid="install-editor"]')?.parentElement;
+        const cluster = findVisibleCluster(doc, win);
 
         if (!topbarBtn) {
             const icon = createSvgIcon(doc, '0 0 24 24', 14, 14, [
@@ -541,39 +651,87 @@ export function mountRtlMathController({
             statusDot = createEl(
                 doc,
                 'span',
-                `position:absolute;top:-2px;right:-2px;width:6px;height:6px;border-radius:9999px;background:#10b981;display:${state.isRTL ? 'block' : 'none'};`
+                `position:absolute;top:-2px;right:-2px;width:6px;height:6px;border-radius:9999px;background:#10b981;box-shadow:0 0 6px rgba(16,185,129,0.75);display:${state.isRTL ? 'block' : 'none'};`
             );
             const iconBox = createEl(doc, 'div', 'position:relative;display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;', [icon, statusDot]);
             const labelEl = createEl(doc, 'span', 'font-size:12px;font-weight:600;', LABELS[state.uiLang].btnText, { id: 'ag-rtl-topbar-label' });
             topbarBtn = createEl(
                 doc,
                 'button',
-                'display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:6px;border:1px solid var(--border,rgba(255,255,255,0.16));background:transparent;color:inherit;cursor:pointer;white-space:nowrap;app-region:no-drag;',
+                'display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:7px;border:1px solid var(--border,rgba(148,163,184,0.22));background:transparent;color:inherit;cursor:pointer;white-space:nowrap;app-region:no-drag;',
                 [iconBox, labelEl],
                 { id: 'ag-rtl-topbar-btn', type: 'button', title: `Antigravity RTL + Math (${isMac ? '⌥R' : 'Alt+R'})` }
             );
+
+            // Allow dragging when floating so users can place it anywhere convenient
+            let dragStart = null;
+            topbarBtn.addEventListener('mousedown', (e) => {
+                if (!topbarBtn.classList.contains('ag-rtl-floating') || e.button !== 0) return;
+                const rect = topbarBtn.getBoundingClientRect();
+                dragStart = { x: e.clientX, y: e.clientY, startRight: (win.innerWidth || 1024) - rect.right, startTop: rect.top, moved: false };
+            });
+            doc.addEventListener('mousemove', (e) => {
+                if (!dragStart) return;
+                const dx = e.clientX - dragStart.x;
+                const dy = e.clientY - dragStart.y;
+                if (!dragStart.moved && Math.hypot(dx, dy) < 4) return;
+                dragStart.moved = true;
+                const vw = win.innerWidth || 1024;
+                const vh = win.innerHeight || 768;
+                const nextTop = Math.min(Math.max(42, Math.round(dragStart.startTop + dy)), Math.max(42, vh - 40));
+                const nextRight = Math.min(Math.max(8, Math.round(dragStart.startRight - dx)), Math.max(8, vw - 120));
+                draggedPos = { top: nextTop, right: nextRight };
+                topbarBtn.style.top = `${nextTop}px`;
+                topbarBtn.style.right = `${nextRight}px`;
+            });
+            doc.addEventListener('mouseup', () => {
+                if (dragStart && dragStart.moved) {
+                    suppressNextClick = true;
+                    if (_setTimeout) _setTimeout(() => { suppressNextClick = false; }, 50);
+                    else suppressNextClick = false;
+                }
+                dragStart = null;
+            });
+
             topbarBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                if (suppressNextClick) return;
                 togglePanel();
             });
         }
 
         if (cluster) {
+            topbarBtn.classList.remove('ag-rtl-floating');
             topbarBtn.style.position = 'relative';
             topbarBtn.style.top = '';
             topbarBtn.style.right = '';
             topbarBtn.style.zIndex = '';
+            topbarBtn.style.background = 'transparent';
             if (topbarBtn.parentElement !== cluster) {
                 cluster.appendChild(topbarBtn);
             }
-        } else if (topbarBtn.parentElement !== doc.body) {
+            stopDockRetry();
+        } else {
+            // Safe zone below Windows/macOS titleBarOverlay (~30px caption height)
+            topbarBtn.classList.add('ag-rtl-floating');
             topbarBtn.style.position = 'fixed';
-            topbarBtn.style.top = '12px';
-            topbarBtn.style.right = '12px';
+            topbarBtn.style.top = draggedPos ? `${draggedPos.top}px` : '46px';
+            topbarBtn.style.right = draggedPos ? `${draggedPos.right}px` : '16px';
             topbarBtn.style.zIndex = '2147483644';
-            topbarBtn.style.background = 'var(--card, #18181b)';
-            doc.body.appendChild(topbarBtn);
+            if (topbarBtn.parentElement !== doc.body) {
+                doc.body.appendChild(topbarBtn);
+            }
+            if (!dockRetryTimer && dockRetryAttempts < 14 && _setInterval) {
+                dockRetryTimer = _setInterval(() => {
+                    dockRetryAttempts++;
+                    const lateCluster = findVisibleCluster(doc, win);
+                    if (lateCluster || dockRetryAttempts >= 14) {
+                        if (lateCluster) ensureTriggerMounted();
+                        stopDockRetry();
+                    }
+                }, 600);
+            }
         }
     }
 
@@ -584,7 +742,15 @@ export function mountRtlMathController({
         titleSpan.textContent = L.title;
         langBtn.textContent = state.uiLang === 'fa' ? 'EN' : 'فا';
         masterLabel.textContent = state.isRTL ? L.enabled : L.disabled;
+        statusBadge.textContent = state.isRTL ? L.badgeOn : L.badgeOff;
+        statusBadge.setAttribute('data-active', String(state.isRTL));
         masterSwitch.setChecked(state.isRTL);
+
+        presetLabel.textContent = L.presets;
+        presetButtons.default.textContent = L.presetDefault;
+        presetButtons.reading.textContent = L.presetReading;
+        presetButtons.compact.textContent = L.presetCompact;
+        updatePresetHighlight();
 
         dirLabel.textContent = L.dirMode;
         for (const m of ['smart', 'auto', 'force']) {
@@ -647,25 +813,27 @@ export function mountRtlMathController({
 
     panel.addEventListener('click', (e) => e.stopPropagation());
 
-    doc.addEventListener('click', (e) => {
+    const onDocClick = (e) => {
         if (panel.style.display === 'block') {
             if (panel.contains(e.target)) return;
             if (topbarBtn && topbarBtn.contains(e.target)) return;
             if (statusbarBtn && statusbarBtn.contains(e.target)) return;
             togglePanel(false);
         }
-    });
-
-    doc.addEventListener('keydown', (e) => {
+    };
+    const onDocKeydown = (e) => {
         if (e.key === 'Escape' && panel.style.display === 'block') {
             togglePanel(false);
         }
-    });
+    };
+    const onWinResize = () => {
+        if (panel.style.display === 'block') positionPanel();
+    };
 
+    doc.addEventListener('click', onDocClick);
+    doc.addEventListener('keydown', onDocKeydown);
     if (typeof win.addEventListener === 'function') {
-        win.addEventListener('resize', () => {
-            if (panel.style.display === 'block') positionPanel();
-        });
+        win.addEventListener('resize', onWinResize);
     }
 
     bindToggleShortcut(doc, () => {
@@ -675,7 +843,7 @@ export function mountRtlMathController({
     });
 
     const stopWatch = watchDom(doc, () => state, () => {
-        applyRtlMathPass(doc, state);
+        applyAll();
         ensureTriggerMounted();
     });
 
@@ -691,12 +859,23 @@ export function mountRtlMathController({
         },
         updateConfig(partial) {
             Object.assign(state, sanitizeConfig({ ...state, ...partial }));
+            syncInputsFromState();
             save();
             syncUI();
         },
-        refresh: () => applyRtlMathPass(doc, state),
+        ensureMounted() {
+            ensureTriggerMounted();
+            applyAll();
+        },
+        refresh: () => applyAll(),
         destroy: () => {
+            stopDockRetry();
             stopWatch();
+            doc.removeEventListener('click', onDocClick);
+            doc.removeEventListener('keydown', onDocKeydown);
+            if (typeof win.removeEventListener === 'function') {
+                win.removeEventListener('resize', onWinResize);
+            }
             panel.remove();
             if (topbarBtn) topbarBtn.remove();
             if (statusbarBtn) statusbarBtn.remove();

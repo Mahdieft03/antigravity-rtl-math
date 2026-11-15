@@ -1,6 +1,6 @@
 /**
- * Template snippet injected into Antigravity Standalone App's `dist/utils.js` before `void win.loadURL(url);`.
- * Placeholders `__CLIENT_BUNDLE__` and `__SANITIZE_MODULE__` are filled at patch time.
+ * Template snippet injected into Antigravity Standalone App's `dist/utils.js` around `void win.loadURL(url);`.
+ * Hooks BOTH the specific window (`before` loadURL to eliminate startup race) and process-wide `web-contents-created`.
  */
 
 export function renderAppHookSnippet(clientScriptTemplate) {
@@ -54,55 +54,96 @@ export function renderAppHookSnippet(clientScriptTemplate) {
         } catch (_) {}
         return __agRtlSanitize({});
     };
-    win.webContents.on('console-message', (event, ...args) => {
-        let message = '';
-        if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null) {
-            message = args[0].message;
-        } else {
-            message = args[1];
-        }
-        if (typeof message === 'string' && message.startsWith('SAVE_RTL_CONFIG|')) {
-            try {
-                const incoming = __agRtlSanitize(JSON.parse(message.substring(16)));
-                let existing = {};
-                if (__agRtlFs.existsSync(__agRtlConfigPath)) {
-                    try { existing = JSON.parse(__agRtlFs.readFileSync(__agRtlConfigPath, 'utf8')); } catch (_) {}
-                }
-                const merged = { ...existing, ...incoming };
-                __agRtlFs.writeFileSync(__agRtlConfigPath, JSON.stringify(merged, null, 2));
-            } catch (_) {}
-        }
-    });
-    void win.loadURL(url);
     const __agRtlTemplate = ${JSON.stringify(clientScriptTemplate)};
     const __agRtlIsLocalUrl = (u) => Boolean(u && /^https?:\\/\\/(127\\.0\\.0\\.1|localhost):\\d+/i.test(u));
+    const __agRtlGetFontB64 = () => {
+        if (typeof globalThis.__agRtlCachedFontB64 !== 'string') {
+            const fontPath = __agRtlPath.join(__dirname, 'Vazirmatn-Variable.woff2');
+            globalThis.__agRtlCachedFontB64 = __agRtlFs.existsSync(fontPath)
+                ? __agRtlFs.readFileSync(fontPath).toString('base64')
+                : '';
+        }
+        return globalThis.__agRtlCachedFontB64;
+    };
     const __agRtlBuildForFrame = (hideTrig) => {
-        const fontPath = __agRtlPath.join(__dirname, 'Vazirmatn-Variable.woff2');
-        const fontBase64 = __agRtlFs.existsSync(fontPath) ? __agRtlFs.readFileSync(fontPath).toString('base64') : '';
+        const fontBase64 = __agRtlGetFontB64();
         const rtlConfig = __agRtlReadConfig();
         return __agRtlTemplate
             .replaceAll('__FONT_BASE64__', () => fontBase64)
             .replaceAll('__RTL_CONFIG__', () => JSON.stringify(rtlConfig))
             .replaceAll('"__HIDE_TRIGGER__"', () => JSON.stringify(Boolean(hideTrig)));
     };
-    win.webContents.on('dom-ready', () => {
-        try {
-            if (!__agRtlIsLocalUrl(win.webContents.getURL())) return;
-            win.webContents.executeJavaScript(__agRtlBuildForFrame(false)).catch(() => {});
-        } catch (_) {}
-    });
-    win.webContents.on('did-frame-finish-load', () => {
-        try {
-            if (!__agRtlIsLocalUrl(win.webContents.getURL())) return;
-            const frames = win.webContents.mainFrame && win.webContents.mainFrame.framesInSubtree;
-            if (!Array.isArray(frames)) return;
-            const code = __agRtlBuildForFrame(true);
-            for (const f of frames) {
-                if (f !== win.webContents.mainFrame && __agRtlIsLocalUrl(f.url)) {
-                    Promise.resolve(f.executeJavaScript(code)).catch(() => {});
-                }
+    const __agRtlReportErr = (err) => {
+        const msg = err && err.message ? err.message : String(err || '');
+        if (/destroyed|ERR_ABORTED|aborted|navigat/i.test(msg)) return;
+        try { console.error('[Antigravity RTL Math]', msg); } catch (_) {}
+    };
+    const __agRtlAttached = globalThis.__agRtlAttachedWc || (globalThis.__agRtlAttachedWc = new WeakSet());
+    const __agRtlAttachWc = (wc, isPrimaryWin) => {
+        if (!wc || typeof wc.on !== 'function' || __agRtlAttached.has(wc)) return;
+        __agRtlAttached.add(wc);
+        wc.on('console-message', (event, ...args) => {
+            let message = '';
+            if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null) {
+                message = args[0].message;
+            } else {
+                message = args[1];
             }
-        } catch (_) {}
-    });
+            if (typeof message === 'string' && message.startsWith('SAVE_RTL_CONFIG|')) {
+                try {
+                    const incoming = __agRtlSanitize(JSON.parse(message.substring(16)));
+                    let existing = {};
+                    if (__agRtlFs.existsSync(__agRtlConfigPath)) {
+                        try { existing = JSON.parse(__agRtlFs.readFileSync(__agRtlConfigPath, 'utf8')); } catch (_) {}
+                    }
+                    const merged = { ...existing, ...incoming };
+                    __agRtlFs.writeFileSync(__agRtlConfigPath, JSON.stringify(merged, null, 2));
+                } catch (_) {}
+            }
+        });
+        const injectMain = () => {
+            try {
+                if (wc.isDestroyed?.()) return;
+                const u = typeof wc.getURL === 'function' ? wc.getURL() : '';
+                if (!__agRtlIsLocalUrl(u)) return;
+                const hideBtn = isPrimaryWin ? false : (typeof wc.getType === 'function' && wc.getType() === 'webview');
+                Promise.resolve(wc.executeJavaScript(__agRtlBuildForFrame(hideBtn))).catch(__agRtlReportErr);
+            } catch (e) {
+                __agRtlReportErr(e);
+            }
+        };
+        const injectSubframes = () => {
+            try {
+                if (wc.isDestroyed?.()) return;
+                const u = typeof wc.getURL === 'function' ? wc.getURL() : '';
+                if (!__agRtlIsLocalUrl(u)) return;
+                const frames = wc.mainFrame && wc.mainFrame.framesInSubtree;
+                if (!Array.isArray(frames)) return;
+                const code = __agRtlBuildForFrame(true);
+                for (const f of frames) {
+                    if (f !== wc.mainFrame && __agRtlIsLocalUrl(f.url)) {
+                        Promise.resolve(f.executeJavaScript(code)).catch(__agRtlReportErr);
+                    }
+                }
+            } catch (e) {
+                __agRtlReportErr(e);
+            }
+        };
+        wc.on('dom-ready', injectMain);
+        wc.on('did-finish-load', injectMain);
+        wc.on('did-navigate-in-page', injectMain);
+        wc.on('did-frame-finish-load', injectSubframes);
+    };
+    try {
+        const __agEl = require('electron');
+        if (__agEl && __agEl.app && typeof __agEl.app.on === 'function' && !globalThis.__agRtlAppHooked) {
+            globalThis.__agRtlAppHooked = true;
+            __agEl.app.on('web-contents-created', (_ev, contents) => {
+                __agRtlAttachWc(contents, false);
+            });
+        }
+    } catch (_) {}
+    __agRtlAttachWc(win && win.webContents, true);
+    void win.loadURL(url);
 /* END ANTIGRAVITY RTL MATH PATCH */`;
 }

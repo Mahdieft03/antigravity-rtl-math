@@ -20,6 +20,28 @@
     --border: rgba(255, 255, 255, 0.14);
     --color-primary: #3b82f6;
   }
+  html.light {
+    --background: #f6f8fa;
+    --foreground: #1f2328;
+    --card: #ffffff;
+    --popover: #ffffff;
+    --popover-foreground: #1f2328;
+    --secondary: #eaeef2;
+    --secondary-foreground: #1f2328;
+    --muted: #f0f3f6;
+    --muted-foreground: #59636e;
+    --border: rgba(31, 35, 40, 0.14);
+    --color-primary: #2563eb;
+  }
+  .demo-btn {
+    border: 1px solid var(--border);
+    background: var(--secondary);
+    color: var(--foreground);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+  }
   body {
     margin: 0;
     background: var(--background);
@@ -116,10 +138,12 @@
 <div class="shell">
   <div class="topbar">
     <div>
-      <strong>Antigravity RTL + Math Playground</strong>
-      <span style="opacity:0.65;font-size:12px;margin-left:8px;">Press Alt+R or click RTL+Math button</span>
+      <strong>Antigravity RTL + Math v3 Playground</strong>
+      <span style="opacity:0.65;font-size:12px;margin-left:8px;">Press Alt+R or click RTL+Math pill</span>
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
+      <button id="theme-toggle" class="demo-btn" type="button">Light / Dark</button>
+      <button id="stream-btn" class="demo-btn" type="button">Simulate Re-mount</button>
       <span data-testid="titlebar-more-actions"></span>
     </div>
   </div>
@@ -179,6 +203,16 @@
           </tbody>
         </table>
 
+        <details style="margin:12px 0;">
+          <summary>اثبات سریع رابطه <span class="math-inline" data-tex="\gamma = (1 - v^2/c^2)^{-1/2}"></span></summary>
+          <p>از قضیه فیثاغورس برای ساعت نوری داریم <span class="math-inline" data-tex="(c\Delta t)^2 = (v\Delta t)^2 + (c\Delta t_0)^2"></span> و بنابراین <span class="math-inline" data-tex="\Delta t = \gamma \Delta t_0"></span> به دست می‌آید.</p>
+        </details>
+
+        <ul class="contains-task-list">
+          <li class="task-list-item"><input type="checkbox" checked disabled /> محافظت از فرمول‌های تک‌خطی و بلوکی در پاراگراف فارسی</li>
+          <li class="task-list-item"><input type="checkbox" checked disabled /> بازگشت خودکار UI در صورت رفرش یا جابه‌جایی صفحه</li>
+        </ul>
+
         <pre><code>// Code blocks always stay strict LTR
 const gamma = (v, c = 299792458) => 1 / Math.sqrt(1 - (v * v) / (c * c));
 console.log('Lorentz factor:', gamma(0.8 * 299792458));</code></pre>
@@ -202,7 +236,7 @@ $$\int_{-\infty}^{\infty} |\psi(x)|^2 \, dx = 1 \qquad \text{شرط بهنجار
 (function(root) {
     if (root.__agRtlMathLib) return;
 /**
- * Shared configuration schema and strict CSS/XSS sanitization for Antigravity RTL Math.
+ * Shared configuration schema, presets, and strict CSS/XSS sanitization for Antigravity RTL Math.
  * Safe to run in both Node.js (main process / CLI) and renderer / browser contexts.
  */
 
@@ -211,6 +245,7 @@ const CONFIG_FILENAME = '.antigravity-rtl.json';
 const DIRECTION_MODES = ['smart', 'auto', 'force'];
 const DISPLAY_MATH_ALIGNS = ['center', 'left', 'right'];
 const UI_LANGS = ['en', 'fa'];
+const PRESET_NAMES = ['default', 'reading', 'compact'];
 
 const DEFAULT_CONFIG = Object.freeze({
     isRTL: true,
@@ -226,6 +261,36 @@ const DEFAULT_CONFIG = Object.freeze({
     lh: '1.6',
     fs: '16',
     uiLang: 'en'
+});
+
+const PRESETS = Object.freeze({
+    default: Object.freeze({
+        directionMode: 'smart',
+        mathIsolation: true,
+        mathPersianText: true,
+        mathDisplayAlign: 'center',
+        mathScale: '1.0',
+        lh: '1.6',
+        fs: '16'
+    }),
+    reading: Object.freeze({
+        directionMode: 'smart',
+        mathIsolation: true,
+        mathPersianText: true,
+        mathDisplayAlign: 'center',
+        mathScale: '1.05',
+        lh: '1.9',
+        fs: '17'
+    }),
+    compact: Object.freeze({
+        directionMode: 'smart',
+        mathIsolation: true,
+        mathPersianText: true,
+        mathDisplayAlign: 'center',
+        mathScale: '0.95',
+        lh: '1.4',
+        fs: '14'
+    })
 });
 
 const SAFE_FONT_NAME_RE = /^[\p{L}\p{N} ._-]{0,64}$/u;
@@ -282,6 +347,16 @@ function sanitizeConfig(raw) {
     out.mathScale = clampNumericString(src.mathScale, 0.75, 1.5, 2, DEFAULT_CONFIG.mathScale);
 
     return out;
+}
+
+/**
+ * Returns a sanitized config with the named preset merged on top of existing user settings.
+ */
+function applyPreset(currentConfig, presetName) {
+    const base = sanitizeConfig(currentConfig);
+    const preset = PRESETS[presetName];
+    if (!preset) return base;
+    return sanitizeConfig({ ...base, ...preset });
 }
 
 
@@ -370,42 +445,95 @@ const FORCE_RTL_SELECTORS = [
  */
 function buildWidgetCSS() {
     return `
+        @keyframes agRtlFadeIn {
+            from { opacity: 0; transform: translateY(-4px) scale(0.985); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
         #ag-rtl-panel {
-            transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.16s ease;
-            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+            transition: opacity 0.16s ease, transform 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+            animation: agRtlFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+            font-family: 'PersianOnlyFont', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+            max-height: calc(100vh - 76px);
+            overflow-y: auto;
+            scrollbar-width: thin;
         }
         #ag-rtl-panel * {
             box-sizing: border-box;
         }
         #ag-rtl-topbar-btn {
-            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+            font-family: 'PersianOnlyFont', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
             line-height: 1 !important;
+            transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease !important;
+        }
+        #ag-rtl-topbar-btn:hover {
+            border-color: rgba(56, 189, 248, 0.55) !important;
+            background: rgba(56, 189, 248, 0.1) !important;
+        }
+        #ag-rtl-topbar-btn.ag-rtl-floating {
+            background: color-mix(in srgb, var(--popover, var(--card, #18181b)) 88%, transparent) !important;
+            backdrop-filter: blur(12px) saturate(1.3);
+            -webkit-backdrop-filter: blur(12px) saturate(1.3);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28), 0 1px 3px rgba(0, 0, 0, 0.18) !important;
+            border: 1px solid var(--border, rgba(148, 163, 184, 0.26)) !important;
         }
         .ag-rtl-theme-panel {
-            background-color: var(--popover, var(--vscode-editorWidget-background, var(--card, #18181b))) !important;
+            background-color: color-mix(in srgb, var(--popover, var(--vscode-editorWidget-background, var(--card, #18181b))) 92%, transparent) !important;
+            backdrop-filter: blur(16px) saturate(1.35);
+            -webkit-backdrop-filter: blur(16px) saturate(1.35);
             color: var(--popover-foreground, var(--vscode-editorWidget-foreground, var(--foreground, #f4f4f5))) !important;
-            border: 1px solid var(--border, var(--vscode-widget-border, rgba(255, 255, 255, 0.14))) !important;
-            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.25) !important;
-            border-radius: 12px !important;
+            border: 1px solid var(--border, var(--vscode-widget-border, rgba(148, 163, 184, 0.22))) !important;
+            box-shadow: 0 18px 44px rgba(0, 0, 0, 0.44), 0 4px 12px rgba(0, 0, 0, 0.22) !important;
+            border-radius: 14px !important;
+        }
+        @media (prefers-color-scheme: light) {
+            .ag-rtl-theme-panel {
+                background-color: color-mix(in srgb, var(--popover, var(--vscode-editorWidget-background, var(--card, #ffffff))) 94%, transparent) !important;
+                color: var(--popover-foreground, var(--vscode-editorWidget-foreground, var(--foreground, #0f172a))) !important;
+                border-color: var(--border, rgba(15, 23, 42, 0.12)) !important;
+                box-shadow: 0 14px 36px rgba(15, 23, 42, 0.14), 0 2px 8px rgba(15, 23, 42, 0.06) !important;
+            }
+            #ag-rtl-topbar-btn.ag-rtl-floating {
+                background: color-mix(in srgb, var(--popover, var(--card, #ffffff)) 90%, transparent) !important;
+                color: var(--foreground, #0f172a) !important;
+                border-color: rgba(15, 23, 42, 0.14) !important;
+            }
+        }
+        .ag-rtl-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 2px 7px;
+            border-radius: 9999px;
+            font-size: 10px;
+            font-weight: 600;
+            background: rgba(16, 185, 129, 0.14);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.28);
+        }
+        .ag-rtl-badge[data-active="false"] {
+            background: rgba(148, 163, 184, 0.14);
+            color: var(--muted-foreground, #94a3b8);
+            border-color: rgba(148, 163, 184, 0.24);
         }
         .ag-rtl-sep {
             height: 1px;
-            background: var(--border, var(--vscode-widget-border, rgba(255, 255, 255, 0.12)));
-            margin: 8px 0;
+            background: var(--border, var(--vscode-widget-border, rgba(148, 163, 184, 0.16)));
+            margin: 9px 0;
             width: 100%;
         }
         .ag-rtl-input {
             font-size: 11px !important;
-            border-radius: 5px !important;
+            border-radius: 6px !important;
             padding: 4px 8px !important;
-            height: 25px !important;
-            width: 126px !important;
+            height: 26px !important;
+            width: 132px !important;
             direction: ltr !important;
             text-align: left !important;
-            background-color: var(--muted, var(--vscode-input-background, #27272a)) !important;
-            color: var(--foreground, var(--vscode-input-foreground, #f4f4f5)) !important;
-            border: 1px solid var(--border, var(--vscode-input-border, rgba(255, 255, 255, 0.16))) !important;
+            background-color: var(--muted, var(--vscode-input-background, rgba(148, 163, 184, 0.12))) !important;
+            color: var(--foreground, var(--vscode-input-foreground, inherit)) !important;
+            border: 1px solid var(--border, var(--vscode-input-border, rgba(148, 163, 184, 0.22))) !important;
             outline: none !important;
+            transition: border-color 0.14s ease !important;
         }
         .ag-rtl-input:focus {
             border-color: var(--color-primary, var(--vscode-focusBorder, #3b82f6)) !important;
@@ -413,9 +541,9 @@ function buildWidgetCSS() {
         .ag-rtl-seg {
             display: inline-flex;
             align-items: center;
-            background: var(--muted, rgba(255, 255, 255, 0.08));
-            border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
-            border-radius: 6px;
+            background: var(--muted, rgba(148, 163, 184, 0.12));
+            border: 1px solid var(--border, rgba(148, 163, 184, 0.18));
+            border-radius: 7px;
             padding: 2px;
             gap: 2px;
         }
@@ -423,14 +551,14 @@ function buildWidgetCSS() {
             border: none;
             background: transparent;
             color: inherit;
-            opacity: 0.72;
+            opacity: 0.75;
             font-size: 10px;
             font-weight: 600;
-            padding: 3px 7px;
-            border-radius: 4px;
+            padding: 3px 8px;
+            border-radius: 5px;
             cursor: pointer;
-            line-height: 1.2;
-            transition: background-color 0.12s ease, opacity 0.12s ease;
+            line-height: 1.25;
+            transition: background-color 0.12s ease, opacity 0.12s ease, color 0.12s ease;
         }
         .ag-rtl-seg-btn:hover {
             opacity: 1;
@@ -439,9 +567,10 @@ function buildWidgetCSS() {
             background: var(--color-primary, var(--vscode-button-background, #2563eb));
             color: #ffffff;
             opacity: 1;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
         }
         .ag-rtl-range {
-            width: 82px;
+            width: 84px;
             accent-color: var(--color-primary, var(--vscode-button-background, #3b82f6));
             cursor: pointer;
         }
@@ -455,9 +584,9 @@ function buildWidgetCSS() {
             font-size: 10px;
             font-weight: 600;
             line-height: 1;
-            color: var(--muted-foreground, #a1a1aa);
-            background-color: var(--muted, rgba(255, 255, 255, 0.08));
-            border: 1px solid var(--border, rgba(255, 255, 255, 0.15));
+            color: var(--muted-foreground, #94a3b8);
+            background-color: var(--muted, rgba(148, 163, 184, 0.12));
+            border: 1px solid var(--border, rgba(148, 163, 184, 0.22));
             border-radius: 4px;
         }
     `;
@@ -640,12 +769,30 @@ function buildDynamicCSS(rawConfig, fontSource = '') {
             overflow-x: auto !important;
             overflow-y: hidden !important;
             max-width: 100% !important;
-            padding-block: 0.25em !important;
+            padding-block: 0.3em !important;
+            scrollbar-width: thin;
+        }
+        .katex-display::-webkit-scrollbar,
+        mjx-container[display="true"]::-webkit-scrollbar {
+            height: 5px;
+        }
+        .katex-display::-webkit-scrollbar-thumb,
+        mjx-container[display="true"]::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.32);
+            border-radius: 9999px;
         }
         .katex-display > .katex {
             display: block !important;
             text-align: ${cfg.mathDisplayAlign} !important;
             white-space: nowrap !important;
+        }
+
+        /* Subtle breathing space for inline math inside RTL paragraphs so Latin/math tokens don't touch Persian glyphs */
+        [dir="rtl"] .katex:not(.katex-display .katex),
+        [dir="rtl"] mjx-container:not([display="true"]),
+        [dir="rtl"] math:not([display="block"]) {
+            margin-inline: 0.14em;
+            vertical-align: baseline;
         }
 
         ${mathScaleRule}
@@ -743,7 +890,7 @@ function buildDynamicCSS(rawConfig, fontSource = '') {
             padding-right: 2rem !important;
         }
 
-        /* RTL Blockquote Border Flip */
+        /* RTL Blockquote Border Flip + Subtle Tint */
         blockquote[dir="rtl"],
         [dir="rtl"] > blockquote:not([dir="ltr"]) {
             direction: rtl;
@@ -751,14 +898,27 @@ function buildDynamicCSS(rawConfig, fontSource = '') {
             border-left-width: 0 !important;
             border-right-width: 3px !important;
             border-right-style: solid;
-            border-right-color: var(--border, rgba(148, 163, 184, 0.45));
-            padding-left: 0 !important;
-            padding-right: 1rem !important;
+            border-right-color: var(--color-primary, var(--border, rgba(56, 189, 248, 0.55)));
+            background: rgba(148, 163, 184, 0.06);
+            border-radius: 8px 2px 2px 8px;
+            padding: 0.35rem 1rem 0.35rem 0.75rem !important;
+        }
+
+        /* RTL Task Checkboxes & Details/Summary */
+        [dir="rtl"] > input[type="checkbox"],
+        li[dir="rtl"] input[type="checkbox"] {
+            margin-right: 0 !important;
+            margin-left: 0.45rem !important;
+        }
+        summary[dir="rtl"] {
+            direction: rtl;
+            text-align: right;
         }
 
         /* RTL Tables */
         table[dir="rtl"] {
             direction: rtl;
+            border-collapse: collapse;
         }
         table[dir="rtl"] th,
         table[dir="rtl"] td {
@@ -883,6 +1043,7 @@ const STRONG_CHAR_RE = /[A-Za-z\u00C0-\u024F\u0370-\u03FF\u0400-\u04FF\u0591-\u0
 const MATH_ROOT_SELECTOR = [
     '.katex',
     '.katex-display',
+    '.katex-error',
     '.math',
     '.math-inline',
     '.math-display',
@@ -1145,40 +1306,88 @@ function applyRtlMathPass(doc, rawConfig) {
  * with a snappy 120ms debounce.
  */
 function watchDom(doc, getConfig, onTick) {
+    const view = doc.defaultView;
+    const _setTimeout = (view && typeof view.setTimeout === 'function')
+        ? view.setTimeout.bind(view)
+        : (typeof setTimeout === 'function' ? setTimeout : null);
+    const _clearTimeout = (view && typeof view.clearTimeout === 'function')
+        ? view.clearTimeout.bind(view)
+        : (typeof clearTimeout === 'function' ? clearTimeout : null);
+
     let timer = null;
     const schedule = () => {
         if (timer) return;
-        timer = setTimeout(() => {
-            timer = null;
+        if (_setTimeout) {
+            timer = _setTimeout(() => {
+                timer = null;
+                onTick();
+            }, 120);
+        } else {
             onTick();
-        }, 120);
+        }
     };
 
-    const root = doc.body || doc.documentElement;
-    if (root) {
-        root.addEventListener('input', schedule, { capture: true });
-        root.addEventListener('focusin', schedule, { capture: true });
+    const observeTarget = doc.documentElement || doc.body;
+    const eventRoot = doc.body || doc.documentElement;
+    const cleanups = [];
 
+    if (eventRoot) {
+        eventRoot.addEventListener('input', schedule, { capture: true });
+        eventRoot.addEventListener('focusin', schedule, { capture: true });
+        cleanups.push(() => {
+            eventRoot.removeEventListener('input', schedule, { capture: true });
+            eventRoot.removeEventListener('focusin', schedule, { capture: true });
+        });
+    }
+
+    if (typeof doc.addEventListener === 'function') {
+        const onVis = () => {
+            if (doc.visibilityState !== 'hidden') schedule();
+        };
+        doc.addEventListener('visibilitychange', onVis);
+        cleanups.push(() => doc.removeEventListener('visibilitychange', onVis));
+    }
+    if (doc.defaultView && typeof doc.defaultView.addEventListener === 'function') {
+        const win = doc.defaultView;
+        win.addEventListener('focus', schedule);
+        cleanups.push(() => win.removeEventListener('focus', schedule));
+    }
+
+    if (observeTarget) {
         const ObserverCtor = (doc.defaultView && doc.defaultView.MutationObserver)
             || (typeof MutationObserver === 'function' ? MutationObserver : null);
         if (ObserverCtor) {
             const observer = new ObserverCtor((mutations) => {
-                const hasExternal = mutations.some((m) => {
+                const needsPass = mutations.some((m) => {
                     if (m.type === 'characterData') {
                         return !isOurOwnNode(m.target);
+                    }
+                    for (const node of m.removedNodes || []) {
+                        if (isOurOwnNode(node) || (node && node.nodeType === 1 && node.querySelector && node.querySelector('[id^="ag-rtl-"]'))) {
+                            return true;
+                        }
                     }
                     for (const node of m.addedNodes || []) {
                         if (!isOurOwnNode(node)) return true;
                     }
                     return false;
                 });
-                if (hasExternal) schedule();
+                if (needsPass) schedule();
             });
-            observer.observe(root, { childList: true, subtree: true, characterData: true });
-            return () => observer.disconnect();
+            observer.observe(observeTarget, { childList: true, subtree: true, characterData: true });
+            cleanups.push(() => observer.disconnect());
         }
     }
-    return () => {};
+
+    return () => {
+        if (timer && _clearTimeout) {
+            _clearTimeout(timer);
+            timer = null;
+        }
+        for (const fn of cleanups) {
+            try { fn(); } catch (_) {}
+        }
+    };
 }
 
 /**
@@ -1206,6 +1415,12 @@ const LABELS = {
         title: 'Antigravity RTL + Math',
         enabled: 'Enabled',
         disabled: 'Disabled',
+        badgeOn: 'Shield ON',
+        badgeOff: 'RTL Off',
+        presets: 'Preset',
+        presetDefault: 'Balanced',
+        presetReading: 'Reading',
+        presetCompact: 'Compact',
         dirMode: 'Direction Mode',
         smart: 'Smart',
         auto: 'Auto',
@@ -1234,6 +1449,12 @@ const LABELS = {
         title: 'راست‌چین + فرمول ریاضی',
         enabled: 'فعال',
         disabled: 'غیرفعال',
+        badgeOn: 'محافظ روشن',
+        badgeOff: 'خاموش',
+        presets: 'حالت آماده',
+        presetDefault: 'متعادل',
+        presetReading: 'مطالعه',
+        presetCompact: 'فشرده',
         dirMode: 'حالت جهت‌دهی',
         smart: 'هوشمند',
         auto: 'خودکار',
@@ -1340,6 +1561,32 @@ function createSwitch(doc, id, checked, onChange) {
     };
 }
 
+function detectActivePreset(cfg) {
+    for (const name of PRESET_NAMES) {
+        const p = PRESETS[name];
+        const match = Object.keys(p).every(k => String(cfg[k]) === String(p[k]));
+        if (match) return name;
+    }
+    return null;
+}
+
+function findVisibleCluster(doc, win) {
+    const candidates = [
+        doc.querySelector('[data-testid="titlebar-more-actions"]')?.parentElement,
+        doc.querySelector('[data-testid="install-editor"]')?.parentElement
+    ];
+    for (const el of candidates) {
+        if (!el) continue;
+        try {
+            if (typeof win.getComputedStyle === 'function' && win.getComputedStyle(el).display === 'none') {
+                continue;
+            }
+        } catch (_) {}
+        return el;
+    }
+    return null;
+}
+
 /**
  * Initializes the full RTL + Math controller and settings UI in the given window/document.
  */
@@ -1353,24 +1600,36 @@ function mountRtlMathController({
     fontBase64 = '',
     onSaveConfig = null
 } = {}) {
+    const _setTimeout = typeof win.setTimeout === 'function' ? win.setTimeout.bind(win) : (typeof setTimeout === 'function' ? setTimeout : null);
+    const _setInterval = typeof win.setInterval === 'function' ? win.setInterval.bind(win) : (typeof setInterval === 'function' ? setInterval : null);
+    const _clearInterval = typeof win.clearInterval === 'function' ? win.clearInterval.bind(win) : (typeof clearInterval === 'function' ? clearInterval : null);
+
     const state = sanitizeConfig(initialConfig);
     const resolvedFontSource = fontSource || fontBase64;
+    let wStyle = null;
+    let dynStyle = null;
 
-    // 1. Inject permanent widget stylesheet
-    if (!doc.getElementById('ag-rtl-widget-style')) {
-        const wStyle = doc.createElement('style');
-        wStyle.id = 'ag-rtl-widget-style';
-        wStyle.textContent = buildWidgetCSS();
-        (doc.head || doc.documentElement).appendChild(wStyle);
+    function ensureStylesMounted() {
+        const head = doc.head || doc.documentElement || doc.body;
+        if (!head) return;
+
+        wStyle = doc.getElementById('ag-rtl-widget-style');
+        if (!wStyle) {
+            wStyle = doc.createElement('style');
+            wStyle.id = 'ag-rtl-widget-style';
+            wStyle.textContent = buildWidgetCSS();
+            head.appendChild(wStyle);
+        }
+
+        dynStyle = doc.getElementById('ag-rtl-dynamic-style');
+        if (!dynStyle) {
+            dynStyle = doc.createElement('style');
+            dynStyle.id = 'ag-rtl-dynamic-style';
+            head.appendChild(dynStyle);
+        }
     }
 
-    // 2. Dynamic RTL + Math stylesheet
-    let dynStyle = doc.getElementById('ag-rtl-dynamic-style');
-    if (!dynStyle) {
-        dynStyle = doc.createElement('style');
-        dynStyle.id = 'ag-rtl-dynamic-style';
-        (doc.head || doc.documentElement).appendChild(dynStyle);
-    }
+    ensureStylesMounted();
 
     function save() {
         if (typeof onSaveConfig === 'function') {
@@ -1381,7 +1640,10 @@ function mountRtlMathController({
     }
 
     function applyAll() {
-        dynStyle.textContent = buildDynamicCSS(state, resolvedFontSource);
+        ensureStylesMounted();
+        if (dynStyle) {
+            dynStyle.textContent = buildDynamicCSS(state, resolvedFontSource);
+        }
         applyRtlMathPass(doc, state);
         if (typeof win.dispatchEvent === 'function' && typeof win.Event === 'function') {
             try {
@@ -1390,14 +1652,14 @@ function mountRtlMathController({
         }
     }
 
-    // 3. Build Pure-DOM Settings Panel
+    // Build Pure-DOM Settings Panel
     const existingPanel = doc.getElementById('ag-rtl-panel');
     if (existingPanel) existingPanel.remove();
 
     const panel = createEl(
         doc,
         'div',
-        'position:fixed;z-index:2147483645;width:296px;padding:13px;display:none;direction:ltr;text-align:left;font-size:12px;user-select:none;',
+        'position:fixed;z-index:2147483645;width:308px;padding:13px 14px;display:none;direction:ltr;text-align:left;font-size:12px;user-select:none;',
         null,
         { id: 'ag-rtl-panel', className: 'ag-rtl-theme-panel' }
     );
@@ -1409,7 +1671,7 @@ function mountRtlMathController({
     const langBtn = createEl(
         doc,
         'button',
-        'border:1px solid var(--border,rgba(255,255,255,0.16));background:transparent;color:inherit;border-radius:4px;font-size:10px;font-weight:600;padding:2px 6px;cursor:pointer;opacity:0.85;',
+        'border:1px solid var(--border,rgba(148,163,184,0.25));background:transparent;color:inherit;border-radius:5px;font-size:10px;font-weight:600;padding:2px 6px;cursor:pointer;opacity:0.88;',
         state.uiLang === 'fa' ? 'EN' : 'فا',
         { id: 'ag-rtl-lang-btn', type: 'button', title: 'Switch panel language (EN/FA)' }
     );
@@ -1424,21 +1686,44 @@ function mountRtlMathController({
         '✕',
         { id: 'ag-rtl-close-btn', type: 'button' }
     );
-    const headerRight = createEl(doc, 'div', 'display:flex;align-items:center;gap:6px;', [langBtn, kbdWrap, closeBtn]);
+    const headerRight = createEl(doc, 'div', 'display:flex;align-items:center;gap:5px;', [langBtn, kbdWrap, closeBtn]);
     panel.appendChild(createEl(doc, 'div', 'display:flex;align-items:center;justify-content:space-between;gap:8px;', [titleSpan, headerRight]));
     panel.appendChild(createEl(doc, 'div', null, null, { className: 'ag-rtl-sep' }));
 
-    // Master toggle row
+    // Master toggle row + status pill
     const masterLabel = createEl(doc, 'span', 'font-weight:600;font-size:12px;');
+    const statusBadge = createEl(doc, 'span', null, '', { id: 'ag-rtl-status-badge', className: 'ag-rtl-badge' });
+    const masterLeft = createEl(doc, 'div', 'display:flex;align-items:center;gap:7px;', [masterLabel, statusBadge]);
     const masterSwitch = createSwitch(doc, 'ag-rtl-master-btn', state.isRTL, () => {
         state.isRTL = !state.isRTL;
         save();
         syncUI();
     });
-    panel.appendChild(createEl(doc, 'div', 'display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;', [masterLabel, masterSwitch.btn]));
+    panel.appendChild(createEl(doc, 'div', 'display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;', [masterLeft, masterSwitch.btn]));
 
-    // Body container (dimmed when RTL disabled, except math shield info)
     const bodyBox = createEl(doc, 'div', 'display:flex;flex-direction:column;gap:8px;transition:opacity 0.15s ease;', null, { id: 'ag-rtl-body' });
+
+    // Quick Presets row
+    const presetLabel = createEl(doc, 'span', 'font-size:11px;opacity:0.85;');
+    const presetButtons = {};
+    const presetSeg = createEl(doc, 'div', null, null, { className: 'ag-rtl-seg' });
+    for (const pName of PRESET_NAMES) {
+        const b = createEl(doc, 'button', null, pName, {
+            id: `ag-rtl-preset-${pName}`,
+            type: 'button',
+            className: 'ag-rtl-seg-btn',
+            'data-active': 'false'
+        });
+        b.addEventListener('click', () => {
+            Object.assign(state, applyPreset(state, pName));
+            syncInputsFromState();
+            save();
+            syncUI();
+        });
+        presetButtons[pName] = b;
+        presetSeg.appendChild(b);
+    }
+    bodyBox.appendChild(createEl(doc, 'div', 'display:flex;align-items:center;justify-content:space-between;gap:6px;', [presetLabel, presetSeg]));
 
     // Direction Mode segmented buttons
     const dirLabel = createEl(doc, 'span', 'font-size:11px;opacity:0.85;');
@@ -1507,7 +1792,7 @@ function mountRtlMathController({
 
     // Math Scale slider
     const mathScaleLabel = createEl(doc, 'span', 'font-size:11px;opacity:0.85;');
-    const mathScaleVal = createEl(doc, 'span', 'font-size:10px;opacity:0.65;min-width:28px;text-align:right;', `${state.mathScale}x`);
+    const mathScaleVal = createEl(doc, 'span', 'font-size:10px;opacity:0.65;min-width:30px;text-align:right;', `${state.mathScale}x`);
     const mathScaleInput = createEl(doc, 'input', null, null, {
         id: 'ag-rtl-math-scale-input',
         type: 'range',
@@ -1523,8 +1808,9 @@ function mountRtlMathController({
         title: 'Reset to 1.0x'
     });
     mathScaleInput.addEventListener('input', (e) => {
-        state.mathScale = e.target.value;
+        state.mathScale = sanitizeConfig({ mathScale: e.target.value }).mathScale;
         mathScaleVal.textContent = `${state.mathScale}x`;
+        updatePresetHighlight();
         save();
         applyAll();
     });
@@ -1532,6 +1818,7 @@ function mountRtlMathController({
         state.mathScale = DEFAULT_CONFIG.mathScale;
         mathScaleInput.value = state.mathScale;
         mathScaleVal.textContent = `${state.mathScale}x`;
+        updatePresetHighlight();
         save();
         applyAll();
     });
@@ -1577,8 +1864,9 @@ function mountRtlMathController({
     const lhInput = createEl(doc, 'input', null, null, { id: 'ag-rtl-lh-input', type: 'range', min: '1.2', max: '2.5', step: '0.1', value: state.lh, className: 'ag-rtl-range' });
     const lhReset = createEl(doc, 'button', 'background:none;border:none;color:inherit;opacity:0.6;cursor:pointer;font-size:11px;padding:0 2px;', '↺', { id: 'ag-rtl-lh-reset', type: 'button', title: 'Reset to 1.6' });
     lhInput.addEventListener('input', (e) => {
-        state.lh = e.target.value;
+        state.lh = sanitizeConfig({ lh: e.target.value }).lh;
         lhVal.textContent = state.lh;
+        updatePresetHighlight();
         save();
         applyAll();
     });
@@ -1586,6 +1874,7 @@ function mountRtlMathController({
         state.lh = DEFAULT_CONFIG.lh;
         lhInput.value = state.lh;
         lhVal.textContent = state.lh;
+        updatePresetHighlight();
         save();
         applyAll();
     });
@@ -1600,8 +1889,9 @@ function mountRtlMathController({
     const fsInput = createEl(doc, 'input', null, null, { id: 'ag-rtl-fs-input', type: 'range', min: '11', max: '24', step: '1', value: state.fs, className: 'ag-rtl-range' });
     const fsReset = createEl(doc, 'button', 'background:none;border:none;color:inherit;opacity:0.6;cursor:pointer;font-size:11px;padding:0 2px;', '↺', { id: 'ag-rtl-fs-reset', type: 'button', title: 'Reset to 16px' });
     fsInput.addEventListener('input', (e) => {
-        state.fs = e.target.value;
+        state.fs = sanitizeConfig({ fs: e.target.value }).fs;
         fsVal.textContent = `${state.fs}px`;
+        updatePresetHighlight();
         save();
         applyAll();
     });
@@ -1609,6 +1899,7 @@ function mountRtlMathController({
         state.fs = DEFAULT_CONFIG.fs;
         fsInput.value = state.fs;
         fsVal.textContent = `${state.fs}px`;
+        updatePresetHighlight();
         save();
         applyAll();
     });
@@ -1620,17 +1911,7 @@ function mountRtlMathController({
     panel.appendChild(bodyBox);
     panel.appendChild(createEl(doc, 'div', null, null, { className: 'ag-rtl-sep' }));
 
-    // Footer Reset Defaults
-    const resetAllBtn = createEl(
-        doc,
-        'button',
-        'width:100%;padding:5px 8px;border-radius:6px;border:1px solid var(--border,rgba(255,255,255,0.12));background:transparent;color:inherit;font-size:11px;cursor:pointer;opacity:0.8;',
-        '',
-        { id: 'ag-rtl-reset-all', type: 'button' }
-    );
-    resetAllBtn.addEventListener('click', () => {
-        const keepLang = state.uiLang;
-        Object.assign(state, DEFAULT_CONFIG, { uiLang: keepLang });
+    function syncInputsFromState() {
         faInput.value = state.faFont;
         enInput.value = state.enFont;
         codeInput.value = state.codeFont;
@@ -1640,17 +1921,44 @@ function mountRtlMathController({
         fsVal.textContent = `${state.fs}px`;
         mathScaleInput.value = state.mathScale;
         mathScaleVal.textContent = `${state.mathScale}x`;
+    }
+
+    function updatePresetHighlight() {
+        const active = detectActivePreset(state);
+        for (const pName of PRESET_NAMES) {
+            presetButtons[pName].setAttribute('data-active', String(active === pName));
+        }
+    }
+
+    // Footer Reset Defaults
+    const resetAllBtn = createEl(
+        doc,
+        'button',
+        'width:100%;padding:5px 8px;border-radius:7px;border:1px solid var(--border,rgba(148,163,184,0.22));background:transparent;color:inherit;font-size:11px;font-weight:500;cursor:pointer;opacity:0.86;',
+        '',
+        { id: 'ag-rtl-reset-all', type: 'button' }
+    );
+    resetAllBtn.addEventListener('click', () => {
+        const keepLang = state.uiLang;
+        Object.assign(state, DEFAULT_CONFIG, { uiLang: keepLang });
+        syncInputsFromState();
         save();
         syncUI();
     });
     panel.appendChild(resetAllBtn);
 
-    // Trigger elements (Topbar / Statusbar / Floating)
+    // Trigger elements (Topbar / Statusbar / Safe Draggable Floating Pill)
     let topbarBtn = null;
     let statusDot = null;
     let statusbarBtn = null;
+    let draggedPos = null;
+    let suppressNextClick = false;
+    let dockRetryTimer = null;
+    let dockRetryAttempts = 0;
 
     function positionPanel() {
+        const vw = win.innerWidth || 1024;
+        const vh = win.innerHeight || 768;
         if (mode === 'ide' && statusbarBtn && doc.body.contains(statusbarBtn)) {
             panel.style.top = 'auto';
             panel.style.bottom = '28px';
@@ -1661,15 +1969,17 @@ function mountRtlMathController({
         if (topbarBtn && typeof topbarBtn.getBoundingClientRect === 'function' && doc.body.contains(topbarBtn)) {
             const rect = topbarBtn.getBoundingClientRect();
             if (rect.width > 0 && rect.height > 0) {
-                panel.style.top = `${Math.round(rect.bottom + 6)}px`;
-                panel.style.right = `${Math.max(8, Math.round((win.innerWidth || 1024) - rect.right))}px`;
+                const topPx = Math.min(Math.max(8, Math.round(rect.bottom + 8)), Math.max(8, vh - 160));
+                const rightPx = Math.min(Math.max(8, Math.round(vw - rect.right)), Math.max(8, vw - 320));
+                panel.style.top = `${topPx}px`;
+                panel.style.right = `${rightPx}px`;
                 panel.style.bottom = 'auto';
                 panel.style.left = 'auto';
                 return;
             }
         }
-        panel.style.top = '48px';
-        panel.style.right = '14px';
+        panel.style.top = '82px';
+        panel.style.right = '16px';
         panel.style.bottom = 'auto';
         panel.style.left = 'auto';
     }
@@ -1685,9 +1995,20 @@ function mountRtlMathController({
         }
     }
 
+    function stopDockRetry() {
+        if (dockRetryTimer && _clearInterval) {
+            _clearInterval(dockRetryTimer);
+            dockRetryTimer = null;
+        }
+    }
+
     function ensureTriggerMounted() {
-        if (!doc.body || hideTrigger) return;
-        if (!doc.body.contains(panel)) doc.body.appendChild(panel);
+        ensureStylesMounted();
+        if (!doc.body) return;
+        if (!hideTrigger && !doc.body.contains(panel)) {
+            doc.body.appendChild(panel);
+        }
+        if (hideTrigger) return;
 
         if (mode === 'ide') {
             const statusTarget =
@@ -1716,14 +2037,12 @@ function mountRtlMathController({
                     statusTarget.prepend(statusbarBtn);
                 }
                 if (topbarBtn && topbarBtn.parentElement) topbarBtn.remove();
+                stopDockRetry();
                 return;
             }
         }
 
-        // App / Remote / IDE-without-statusbar fallback: mount in topbar cluster or floating pill
-        const cluster =
-            doc.querySelector('[data-testid="titlebar-more-actions"]')?.parentElement ||
-            doc.querySelector('[data-testid="install-editor"]')?.parentElement;
+        const cluster = findVisibleCluster(doc, win);
 
         if (!topbarBtn) {
             const icon = createSvgIcon(doc, '0 0 24 24', 14, 14, [
@@ -1734,39 +2053,87 @@ function mountRtlMathController({
             statusDot = createEl(
                 doc,
                 'span',
-                `position:absolute;top:-2px;right:-2px;width:6px;height:6px;border-radius:9999px;background:#10b981;display:${state.isRTL ? 'block' : 'none'};`
+                `position:absolute;top:-2px;right:-2px;width:6px;height:6px;border-radius:9999px;background:#10b981;box-shadow:0 0 6px rgba(16,185,129,0.75);display:${state.isRTL ? 'block' : 'none'};`
             );
             const iconBox = createEl(doc, 'div', 'position:relative;display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;', [icon, statusDot]);
             const labelEl = createEl(doc, 'span', 'font-size:12px;font-weight:600;', LABELS[state.uiLang].btnText, { id: 'ag-rtl-topbar-label' });
             topbarBtn = createEl(
                 doc,
                 'button',
-                'display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:6px;border:1px solid var(--border,rgba(255,255,255,0.16));background:transparent;color:inherit;cursor:pointer;white-space:nowrap;app-region:no-drag;',
+                'display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:7px;border:1px solid var(--border,rgba(148,163,184,0.22));background:transparent;color:inherit;cursor:pointer;white-space:nowrap;app-region:no-drag;',
                 [iconBox, labelEl],
                 { id: 'ag-rtl-topbar-btn', type: 'button', title: `Antigravity RTL + Math (${isMac ? '⌥R' : 'Alt+R'})` }
             );
+
+            // Allow dragging when floating so users can place it anywhere convenient
+            let dragStart = null;
+            topbarBtn.addEventListener('mousedown', (e) => {
+                if (!topbarBtn.classList.contains('ag-rtl-floating') || e.button !== 0) return;
+                const rect = topbarBtn.getBoundingClientRect();
+                dragStart = { x: e.clientX, y: e.clientY, startRight: (win.innerWidth || 1024) - rect.right, startTop: rect.top, moved: false };
+            });
+            doc.addEventListener('mousemove', (e) => {
+                if (!dragStart) return;
+                const dx = e.clientX - dragStart.x;
+                const dy = e.clientY - dragStart.y;
+                if (!dragStart.moved && Math.hypot(dx, dy) < 4) return;
+                dragStart.moved = true;
+                const vw = win.innerWidth || 1024;
+                const vh = win.innerHeight || 768;
+                const nextTop = Math.min(Math.max(42, Math.round(dragStart.startTop + dy)), Math.max(42, vh - 40));
+                const nextRight = Math.min(Math.max(8, Math.round(dragStart.startRight - dx)), Math.max(8, vw - 120));
+                draggedPos = { top: nextTop, right: nextRight };
+                topbarBtn.style.top = `${nextTop}px`;
+                topbarBtn.style.right = `${nextRight}px`;
+            });
+            doc.addEventListener('mouseup', () => {
+                if (dragStart && dragStart.moved) {
+                    suppressNextClick = true;
+                    if (_setTimeout) _setTimeout(() => { suppressNextClick = false; }, 50);
+                    else suppressNextClick = false;
+                }
+                dragStart = null;
+            });
+
             topbarBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                if (suppressNextClick) return;
                 togglePanel();
             });
         }
 
         if (cluster) {
+            topbarBtn.classList.remove('ag-rtl-floating');
             topbarBtn.style.position = 'relative';
             topbarBtn.style.top = '';
             topbarBtn.style.right = '';
             topbarBtn.style.zIndex = '';
+            topbarBtn.style.background = 'transparent';
             if (topbarBtn.parentElement !== cluster) {
                 cluster.appendChild(topbarBtn);
             }
-        } else if (topbarBtn.parentElement !== doc.body) {
+            stopDockRetry();
+        } else {
+            // Safe zone below Windows/macOS titleBarOverlay (~30px caption height)
+            topbarBtn.classList.add('ag-rtl-floating');
             topbarBtn.style.position = 'fixed';
-            topbarBtn.style.top = '12px';
-            topbarBtn.style.right = '12px';
+            topbarBtn.style.top = draggedPos ? `${draggedPos.top}px` : '46px';
+            topbarBtn.style.right = draggedPos ? `${draggedPos.right}px` : '16px';
             topbarBtn.style.zIndex = '2147483644';
-            topbarBtn.style.background = 'var(--card, #18181b)';
-            doc.body.appendChild(topbarBtn);
+            if (topbarBtn.parentElement !== doc.body) {
+                doc.body.appendChild(topbarBtn);
+            }
+            if (!dockRetryTimer && dockRetryAttempts < 14 && _setInterval) {
+                dockRetryTimer = _setInterval(() => {
+                    dockRetryAttempts++;
+                    const lateCluster = findVisibleCluster(doc, win);
+                    if (lateCluster || dockRetryAttempts >= 14) {
+                        if (lateCluster) ensureTriggerMounted();
+                        stopDockRetry();
+                    }
+                }, 600);
+            }
         }
     }
 
@@ -1777,7 +2144,15 @@ function mountRtlMathController({
         titleSpan.textContent = L.title;
         langBtn.textContent = state.uiLang === 'fa' ? 'EN' : 'فا';
         masterLabel.textContent = state.isRTL ? L.enabled : L.disabled;
+        statusBadge.textContent = state.isRTL ? L.badgeOn : L.badgeOff;
+        statusBadge.setAttribute('data-active', String(state.isRTL));
         masterSwitch.setChecked(state.isRTL);
+
+        presetLabel.textContent = L.presets;
+        presetButtons.default.textContent = L.presetDefault;
+        presetButtons.reading.textContent = L.presetReading;
+        presetButtons.compact.textContent = L.presetCompact;
+        updatePresetHighlight();
 
         dirLabel.textContent = L.dirMode;
         for (const m of ['smart', 'auto', 'force']) {
@@ -1840,25 +2215,27 @@ function mountRtlMathController({
 
     panel.addEventListener('click', (e) => e.stopPropagation());
 
-    doc.addEventListener('click', (e) => {
+    const onDocClick = (e) => {
         if (panel.style.display === 'block') {
             if (panel.contains(e.target)) return;
             if (topbarBtn && topbarBtn.contains(e.target)) return;
             if (statusbarBtn && statusbarBtn.contains(e.target)) return;
             togglePanel(false);
         }
-    });
-
-    doc.addEventListener('keydown', (e) => {
+    };
+    const onDocKeydown = (e) => {
         if (e.key === 'Escape' && panel.style.display === 'block') {
             togglePanel(false);
         }
-    });
+    };
+    const onWinResize = () => {
+        if (panel.style.display === 'block') positionPanel();
+    };
 
+    doc.addEventListener('click', onDocClick);
+    doc.addEventListener('keydown', onDocKeydown);
     if (typeof win.addEventListener === 'function') {
-        win.addEventListener('resize', () => {
-            if (panel.style.display === 'block') positionPanel();
-        });
+        win.addEventListener('resize', onWinResize);
     }
 
     bindToggleShortcut(doc, () => {
@@ -1868,7 +2245,7 @@ function mountRtlMathController({
     });
 
     const stopWatch = watchDom(doc, () => state, () => {
-        applyRtlMathPass(doc, state);
+        applyAll();
         ensureTriggerMounted();
     });
 
@@ -1884,12 +2261,23 @@ function mountRtlMathController({
         },
         updateConfig(partial) {
             Object.assign(state, sanitizeConfig({ ...state, ...partial }));
+            syncInputsFromState();
             save();
             syncUI();
         },
-        refresh: () => applyRtlMathPass(doc, state),
+        ensureMounted() {
+            ensureTriggerMounted();
+            applyAll();
+        },
+        refresh: () => applyAll(),
         destroy: () => {
+            stopDockRetry();
             stopWatch();
+            doc.removeEventListener('click', onDocClick);
+            doc.removeEventListener('keydown', onDocKeydown);
+            if (typeof win.removeEventListener === 'function') {
+                win.removeEventListener('resize', onWinResize);
+            }
             panel.remove();
             if (topbarBtn) topbarBtn.remove();
             if (statusbarBtn) statusbarBtn.remove();
@@ -1899,6 +2287,8 @@ function mountRtlMathController({
 
     root.__agRtlMathLib = {
         DEFAULT_CONFIG,
+        PRESETS,
+        applyPreset,
         sanitizeConfig,
         buildWidgetCSS,
         buildDynamicCSS,
@@ -1971,6 +2361,30 @@ function mountRtlMathController({
 
   liveInput.addEventListener('input', renderLive);
   renderLive();
+
+  var themeBtn = document.getElementById('theme-toggle');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', function() {
+      var html = document.documentElement;
+      var isLight = html.classList.toggle('light');
+      html.classList.toggle('dark', !isLight);
+    });
+  }
+
+  var streamBtn = document.getElementById('stream-btn');
+  if (streamBtn) {
+    streamBtn.addEventListener('click', function() {
+      var anchor = document.querySelector('[data-testid="titlebar-more-actions"]');
+      var existing = document.getElementById('ag-rtl-topbar-btn');
+      if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+      if (anchor) {
+        var next = document.createElement('span');
+        next.setAttribute('data-testid', 'titlebar-more-actions');
+        anchor.replaceWith(next);
+      }
+      setTimeout(function() { controller.refresh(); }, 50);
+    });
+  }
 })();
 </script>
 </body>

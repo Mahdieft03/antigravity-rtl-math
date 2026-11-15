@@ -35,6 +35,28 @@ export function buildDemoHtml() {
     --border: rgba(255, 255, 255, 0.14);
     --color-primary: #3b82f6;
   }
+  html.light {
+    --background: #f6f8fa;
+    --foreground: #1f2328;
+    --card: #ffffff;
+    --popover: #ffffff;
+    --popover-foreground: #1f2328;
+    --secondary: #eaeef2;
+    --secondary-foreground: #1f2328;
+    --muted: #f0f3f6;
+    --muted-foreground: #59636e;
+    --border: rgba(31, 35, 40, 0.14);
+    --color-primary: #2563eb;
+  }
+  .demo-btn {
+    border: 1px solid var(--border);
+    background: var(--secondary);
+    color: var(--foreground);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+  }
   body {
     margin: 0;
     background: var(--background);
@@ -131,10 +153,12 @@ export function buildDemoHtml() {
 <div class="shell">
   <div class="topbar">
     <div>
-      <strong>Antigravity RTL + Math Playground</strong>
-      <span style="opacity:0.65;font-size:12px;margin-left:8px;">Press Alt+R or click RTL+Math button</span>
+      <strong>Antigravity RTL + Math v3 Playground</strong>
+      <span style="opacity:0.65;font-size:12px;margin-left:8px;">Press Alt+R or click RTL+Math pill</span>
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
+      <button id="theme-toggle" class="demo-btn" type="button">Light / Dark</button>
+      <button id="stream-btn" class="demo-btn" type="button">Simulate Re-mount</button>
       <span data-testid="titlebar-more-actions"></span>
     </div>
   </div>
@@ -193,6 +217,16 @@ export function buildDemoHtml() {
             <tr><td>طول منقبض‌شده</td><td><span class="math-inline" data-tex="\\tilde{L}"></span></td><td><span class="math-inline" data-tex="L / \\gamma"></span></td></tr>
           </tbody>
         </table>
+
+        <details style="margin:12px 0;">
+          <summary>اثبات سریع رابطه <span class="math-inline" data-tex="\\gamma = (1 - v^2/c^2)^{-1/2}"></span></summary>
+          <p>از قضیه فیثاغورس برای ساعت نوری داریم <span class="math-inline" data-tex="(c\\Delta t)^2 = (v\\Delta t)^2 + (c\\Delta t_0)^2"></span> و بنابراین <span class="math-inline" data-tex="\\Delta t = \\gamma \\Delta t_0"></span> به دست می‌آید.</p>
+        </details>
+
+        <ul class="contains-task-list">
+          <li class="task-list-item"><input type="checkbox" checked disabled /> محافظت از فرمول‌های تک‌خطی و بلوکی در پاراگراف فارسی</li>
+          <li class="task-list-item"><input type="checkbox" checked disabled /> بازگشت خودکار UI در صورت رفرش یا جابه‌جایی صفحه</li>
+        </ul>
 
         <pre><code>// Code blocks always stay strict LTR
 const gamma = (v, c = 299792458) => 1 / Math.sqrt(1 - (v * v) / (c * c));
@@ -272,6 +306,30 @@ ${sharedLib}
 
   liveInput.addEventListener('input', renderLive);
   renderLive();
+
+  var themeBtn = document.getElementById('theme-toggle');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', function() {
+      var html = document.documentElement;
+      var isLight = html.classList.toggle('light');
+      html.classList.toggle('dark', !isLight);
+    });
+  }
+
+  var streamBtn = document.getElementById('stream-btn');
+  if (streamBtn) {
+    streamBtn.addEventListener('click', function() {
+      var anchor = document.querySelector('[data-testid="titlebar-more-actions"]');
+      var existing = document.getElementById('ag-rtl-topbar-btn');
+      if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+      if (anchor) {
+        var next = document.createElement('span');
+        next.setAttribute('data-testid', 'titlebar-more-actions');
+        anchor.replaceWith(next);
+      }
+      setTimeout(function() { controller.refresh(); }, 50);
+    });
+  }
 })();
 </script>
 </body>

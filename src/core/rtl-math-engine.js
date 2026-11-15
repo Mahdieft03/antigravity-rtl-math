@@ -15,6 +15,7 @@ const STRONG_CHAR_RE = /[A-Za-z\u00C0-\u024F\u0370-\u03FF\u0400-\u04FF\u0591-\u0
 export const MATH_ROOT_SELECTOR = [
     '.katex',
     '.katex-display',
+    '.katex-error',
     '.math',
     '.math-inline',
     '.math-display',
@@ -277,40 +278,88 @@ export function applyRtlMathPass(doc, rawConfig) {
  * with a snappy 120ms debounce.
  */
 export function watchDom(doc, getConfig, onTick) {
+    const view = doc.defaultView;
+    const _setTimeout = (view && typeof view.setTimeout === 'function')
+        ? view.setTimeout.bind(view)
+        : (typeof setTimeout === 'function' ? setTimeout : null);
+    const _clearTimeout = (view && typeof view.clearTimeout === 'function')
+        ? view.clearTimeout.bind(view)
+        : (typeof clearTimeout === 'function' ? clearTimeout : null);
+
     let timer = null;
     const schedule = () => {
         if (timer) return;
-        timer = setTimeout(() => {
-            timer = null;
+        if (_setTimeout) {
+            timer = _setTimeout(() => {
+                timer = null;
+                onTick();
+            }, 120);
+        } else {
             onTick();
-        }, 120);
+        }
     };
 
-    const root = doc.body || doc.documentElement;
-    if (root) {
-        root.addEventListener('input', schedule, { capture: true });
-        root.addEventListener('focusin', schedule, { capture: true });
+    const observeTarget = doc.documentElement || doc.body;
+    const eventRoot = doc.body || doc.documentElement;
+    const cleanups = [];
 
+    if (eventRoot) {
+        eventRoot.addEventListener('input', schedule, { capture: true });
+        eventRoot.addEventListener('focusin', schedule, { capture: true });
+        cleanups.push(() => {
+            eventRoot.removeEventListener('input', schedule, { capture: true });
+            eventRoot.removeEventListener('focusin', schedule, { capture: true });
+        });
+    }
+
+    if (typeof doc.addEventListener === 'function') {
+        const onVis = () => {
+            if (doc.visibilityState !== 'hidden') schedule();
+        };
+        doc.addEventListener('visibilitychange', onVis);
+        cleanups.push(() => doc.removeEventListener('visibilitychange', onVis));
+    }
+    if (doc.defaultView && typeof doc.defaultView.addEventListener === 'function') {
+        const win = doc.defaultView;
+        win.addEventListener('focus', schedule);
+        cleanups.push(() => win.removeEventListener('focus', schedule));
+    }
+
+    if (observeTarget) {
         const ObserverCtor = (doc.defaultView && doc.defaultView.MutationObserver)
             || (typeof MutationObserver === 'function' ? MutationObserver : null);
         if (ObserverCtor) {
             const observer = new ObserverCtor((mutations) => {
-                const hasExternal = mutations.some((m) => {
+                const needsPass = mutations.some((m) => {
                     if (m.type === 'characterData') {
                         return !isOurOwnNode(m.target);
+                    }
+                    for (const node of m.removedNodes || []) {
+                        if (isOurOwnNode(node) || (node && node.nodeType === 1 && node.querySelector && node.querySelector('[id^="ag-rtl-"]'))) {
+                            return true;
+                        }
                     }
                     for (const node of m.addedNodes || []) {
                         if (!isOurOwnNode(node)) return true;
                     }
                     return false;
                 });
-                if (hasExternal) schedule();
+                if (needsPass) schedule();
             });
-            observer.observe(root, { childList: true, subtree: true, characterData: true });
-            return () => observer.disconnect();
+            observer.observe(observeTarget, { childList: true, subtree: true, characterData: true });
+            cleanups.push(() => observer.disconnect());
         }
     }
-    return () => {};
+
+    return () => {
+        if (timer && _clearTimeout) {
+            _clearTimeout(timer);
+            timer = null;
+        }
+        for (const fn of cleanups) {
+            try { fn(); } catch (_) {}
+        }
+    };
 }
 
 /**

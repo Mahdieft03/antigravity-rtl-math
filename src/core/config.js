@@ -1,5 +1,5 @@
 /**
- * Shared configuration schema and strict CSS/XSS sanitization for Antigravity RTL Math.
+ * Shared configuration schema, presets, and strict CSS/XSS sanitization for Antigravity RTL Math.
  * Safe to run in both Node.js (main process / CLI) and renderer / browser contexts.
  */
 
@@ -8,6 +8,7 @@ export const CONFIG_FILENAME = '.antigravity-rtl.json';
 export const DIRECTION_MODES = ['smart', 'auto', 'force'];
 export const DISPLAY_MATH_ALIGNS = ['center', 'left', 'right'];
 export const UI_LANGS = ['en', 'fa'];
+export const PRESET_NAMES = ['default', 'reading', 'compact'];
 
 export const DEFAULT_CONFIG = Object.freeze({
     isRTL: true,
@@ -23,6 +24,36 @@ export const DEFAULT_CONFIG = Object.freeze({
     lh: '1.6',
     fs: '16',
     uiLang: 'en'
+});
+
+export const PRESETS = Object.freeze({
+    default: Object.freeze({
+        directionMode: 'smart',
+        mathIsolation: true,
+        mathPersianText: true,
+        mathDisplayAlign: 'center',
+        mathScale: '1.0',
+        lh: '1.6',
+        fs: '16'
+    }),
+    reading: Object.freeze({
+        directionMode: 'smart',
+        mathIsolation: true,
+        mathPersianText: true,
+        mathDisplayAlign: 'center',
+        mathScale: '1.05',
+        lh: '1.9',
+        fs: '17'
+    }),
+    compact: Object.freeze({
+        directionMode: 'smart',
+        mathIsolation: true,
+        mathPersianText: true,
+        mathDisplayAlign: 'center',
+        mathScale: '0.95',
+        lh: '1.4',
+        fs: '14'
+    })
 });
 
 const SAFE_FONT_NAME_RE = /^[\p{L}\p{N} ._-]{0,64}$/u;
@@ -79,4 +110,14 @@ export function sanitizeConfig(raw) {
     out.mathScale = clampNumericString(src.mathScale, 0.75, 1.5, 2, DEFAULT_CONFIG.mathScale);
 
     return out;
+}
+
+/**
+ * Returns a sanitized config with the named preset merged on top of existing user settings.
+ */
+export function applyPreset(currentConfig, presetName) {
+    const base = sanitizeConfig(currentConfig);
+    const preset = PRESETS[presetName];
+    if (!preset) return base;
+    return sanitizeConfig({ ...base, ...preset });
 }
