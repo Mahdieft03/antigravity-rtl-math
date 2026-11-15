@@ -11,7 +11,7 @@
     "start": "node ./src/cli.js",
     "status": "node ./src/cli.js --status",
     "demo": "node ./src/cli.js --demo",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/engine.test.js test/katex-dom.test.js test/patchers.test.js"
   },
   "keywords": [
     "antigravity",
