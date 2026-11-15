@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Antigravity RTL + Math",
+  "description": "Smart Right-to-Left layout & Math Isolation (KaTeX, MathJax, MathML) for Antigravity Remote Control in the browser.",
+  "version": "2.0.0",
+  "permissions": ["storage"],
+  "content_scripts": [
+    {
+      "matches": ["https://antigravity.static.usercontent.goog/web/*"],
+      "js": ["content.js"],
+      "all_frames": true,
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["Vazirmatn-Variable.woff2"],
+      "matches": ["https://antigravity.static.usercontent.goog/*"]
+    }
+  ]
+}

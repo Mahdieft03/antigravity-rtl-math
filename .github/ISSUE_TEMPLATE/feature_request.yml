@@ -1,0 +1,17 @@
+name: Feature Request
+description: Suggest an improvement for RTL typography or math isolation
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Describe the feature
+      description: What problem would this solve, and how should it behave?
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Screenshots, LaTeX examples, or UI mockups (optional).

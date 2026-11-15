@@ -1,0 +1,60 @@
+{
+  "name": "antigravity-rtl-math",
+  "version": "2.0.0",
+  "description": "Smart RTL & Math Isolation patcher for Antigravity, Antigravity IDE, and Remote Control — keeps Persian/Arabic RTL clean while preserving KaTeX, MathJax, MathML, code, and diagrams.",
+  "type": "module",
+  "main": "./src/cli.js",
+  "bin": {
+    "antigravity-rtl-math": "./src/cli.js"
+  },
+  "scripts": {
+    "start": "node ./src/cli.js",
+    "status": "node ./src/cli.js --status",
+    "demo": "node ./src/cli.js --demo",
+    "test": "node --test test/*.test.js"
+  },
+  "keywords": [
+    "antigravity",
+    "rtl",
+    "math",
+    "katex",
+    "mathjax",
+    "latex",
+    "persian",
+    "arabic",
+    "hebrew",
+    "electron",
+    "asar"
+  ],
+  "author": "mahdieft03",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mahdieft03/antigravity-rtl-math.git"
+  },
+  "homepage": "https://github.com/mahdieft03/antigravity-rtl-math#readme",
+  "bugs": {
+    "url": "https://github.com/mahdieft03/antigravity-rtl-math/issues"
+  },
+  "files": [
+    "assets",
+    "demo",
+    "src",
+    "LICENSE",
+    "NOTICE",
+    "README.md"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@electron/asar": "^4.2.0",
+    "ora": "^9.4.1",
+    "picocolors": "^1.1.1",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0",
+    "katex": "^0.16.21"
+  }
+}

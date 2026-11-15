@@ -1,0 +1,35 @@
+name: Bug Report
+description: Report a rendering, formula isolation, or patching issue
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: target
+    attributes:
+      label: Target Environment
+      options:
+        - Antigravity (Standalone App)
+        - Antigravity IDE (VS Code Edition)
+        - Remote Control Browser Extension
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating System & Node.js Version
+      placeholder: e.g. Windows 11, Node v22.14.0
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the layout, formula, or CLI issue clearly.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Sample LaTeX / Markdown to reproduce
+      description: Paste the exact formula or mixed RTL text that broke (if applicable).
+      render: markdown

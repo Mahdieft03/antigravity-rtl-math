@@ -1,0 +1,1977 @@
+<!DOCTYPE html>
+<html lang="fa" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Antigravity RTL + Math Playground</title>
+<link rel="stylesheet" href="../node_modules/katex/dist/katex.min.css" />
+<script src="../node_modules/katex/dist/katex.min.js"></script>
+<style>
+  :root {
+    --background: #0d1117;
+    --foreground: #e6edf3;
+    --card: #161b22;
+    --popover: #161b22;
+    --popover-foreground: #e6edf3;
+    --secondary: #21262d;
+    --secondary-foreground: #e6edf3;
+    --muted: #21262d;
+    --muted-foreground: #8b949e;
+    --border: rgba(255, 255, 255, 0.14);
+    --color-primary: #3b82f6;
+  }
+  body {
+    margin: 0;
+    background: var(--background);
+    color: var(--foreground);
+    padding: 24px 16px 64px;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+  }
+  .shell {
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    direction: ltr;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+  }
+  .pill {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 1px 7px;
+    font-size: 0.9em;
+  }
+  pre {
+    background: #0b0f14;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    overflow-x: auto;
+  }
+  code {
+    background: rgba(110, 118, 129, 0.25);
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  pre code {
+    background: transparent;
+    padding: 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 10px;
+  }
+  blockquote {
+    margin: 12px 0;
+    padding: 6px 14px;
+    opacity: 0.9;
+    background: rgba(255, 255, 255, 0.03);
+  }
+  .live-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    direction: ltr;
+  }
+  @media (max-width: 760px) {
+    .live-grid { grid-template-columns: 1fr; }
+  }
+  textarea.latex-input {
+    width: 100%;
+    min-height: 150px;
+    background: #0b0f14;
+    color: var(--foreground);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 13px;
+    resize: vertical;
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="topbar">
+    <div>
+      <strong>Antigravity RTL + Math Playground</strong>
+      <span style="opacity:0.65;font-size:12px;margin-left:8px;">Press Alt+R or click RTL+Math button</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span data-testid="titlebar-more-actions"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div id="conversation" data-testid="conversation-view">
+      <div class="prose leading-relaxed" data-testid="chat-message">
+        <ul>
+          <li>
+            <span class="pill">[جزوه — ص ۲ بالا]</span> : روی نمودار بالای صفحه ۲، جزوه طول ویژه را <span class="math-inline" data-tex="L"></span> و طول اندازه‌گیری‌شده در حرکت را <span class="math-inline" data-tex="\tilde{L}"></span> می‌نامد و رابطه درست زیر را می‌نویسد:
+            <div class="math-display" data-tex="\tilde{L} = L\gamma^{-1} \quad (\gamma \ge 1) \qquad \text{انقباض طول}"></div>
+          </li>
+        </ul>
+
+        <h3>۲.۳ حالت ۲: اتساع زمان (Time Dilation) و اصلاح دو نکته مهم جزوه</h3>
+
+        <ul>
+          <li>
+            <span class="pill">[جزوه — ص ۱ پایین]</span> : در جزوه دو سطر برای زمان نوشته شده است:
+            <ol>
+              <li>
+                ابتدا شرط سکون ساعت در <span class="math-inline" data-tex="S'"></span> را می‌گذارد: <span class="math-inline" data-tex="x'_2 = x'_1 \implies x_2 - x_1 = v(t_2 - t_1)"></span> (یعنی همان‌طور که استاد در کلاس اشاره می‌کند، ساعتی که در <span class="math-inline" data-tex="S'"></span> ساکن است در دستگاه <span class="math-inline" data-tex="S"></span> با سرعت <span class="math-inline" data-tex="v"></span> به اندازه <span class="math-inline" data-tex="\Delta x = v\Delta t"></span> جابه‌جا می‌شود).
+              </li>
+              <li>
+                سپس در پایین‌ترین سطر صفحه ۱، ساعت را در دستگاه <span class="math-inline" data-tex="S"></span> ساکن می‌گیرد (<span class="math-inline" data-tex="x_2 = x_1"></span>) و دو رویداد تیک‌های ساعت را به <span class="math-inline" data-tex="S'"></span> می‌برد:
+              </li>
+            </ol>
+            <div class="math-display" data-tex="\left. \begin{aligned} x'_2 - x'_1 &= \gamma(-v)(t_2 - t_1) \\ t'_2 - t'_1 &= \gamma(t_2 - t_1) \end{aligned} \right\} \implies x_1 = x_2 \qquad \text{اتساع (کش آمدن) زمان}"></div>
+          </li>
+
+          <li>
+            <span class="pill">[وویس کلاس — چانک ۱، ۱۷:۳۰ تا ۲۴:۰۰]</span> :
+            <ul>
+              <li>
+                چون ساعت در <span class="math-inline" data-tex="S"></span> ساکن است (<span class="math-inline" data-tex="x_2 = x_1"></span>)، بازه زمانی <span class="math-inline" data-tex="T = t_2 - t_1"></span> زمان ویژه (proper time) است (کمترین بازه زمانی ممکن میان آن دو رویداد). اما در دستگاه <span class="math-inline" data-tex="S'"></span>، آن دو تیک در دو مکان متفاوت (<span class="math-inline" data-tex="x'_2 \neq x'_1"></span>) رخ می‌دهند و بازه زمانی برابر <span class="math-inline" data-tex="\tilde{T} = t'_2 - t'_1 = \gamma T > T"></span> می‌شود؛ یعنی ساعت متحرک در دستگاه <span class="math-inline" data-tex="S'"></span> کندتر کار می‌کند.
+              </li>
+              <li>
+                <span class="math-inline" data-tex="S'"></span> دستگاه متحرک است و پاراگرافی که با فرمول یا <code>Time Dilation</code> شروع شود هم همچنان باید راست‌چین بماند!
+              </li>
+            </ul>
+          </li>
+        </ul>
+
+        <p>Time Dilation در فیزیک نسبیت به معنای کند شدن زمان در دستگاه متحرک است و با رابطه <span class="math-inline" data-tex="\gamma = \frac{1}{\sqrt{1 - v^2/c^2}}"></span> محاسبه می‌شود.</p>
+
+        <blockquote class="border-l-4">
+          نکته تکمیلی: درون فرمول‌هایی مثل <span class="math-inline" data-tex="\text{مرحله 1: سرعت } v \text{ در دستگاه } S'"></span>، متن فارسی درون <code>\text{...}</code> هم راست‌به‌چپ باقی می‌ماند!
+        </blockquote>
+
+        <table>
+          <thead>
+            <tr><th>کمیت</th><th>نماد</th><th>فرمول</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>ضریب لورنتس</td><td><span class="math-inline" data-tex="\gamma"></span></td><td><span class="math-inline" data-tex="\frac{1}{\sqrt{1 - \beta^2}}"></span></td></tr>
+            <tr><td>طول منقبض‌شده</td><td><span class="math-inline" data-tex="\tilde{L}"></span></td><td><span class="math-inline" data-tex="L / \gamma"></span></td></tr>
+          </tbody>
+        </table>
+
+        <pre><code>// Code blocks always stay strict LTR
+const gamma = (v, c = 299792458) => 1 / Math.sqrt(1 - (v * v) / (c * c));
+console.log('Lorentz factor:', gamma(0.8 * 299792458));</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;direction:ltr;">Interactive Formula + RTL Tester</h3>
+    <div class="live-grid">
+      <div>
+        <textarea id="live-input" class="latex-input" dir="auto">در معادله شرودینگر $i\hbar \frac{\partial}{\partial t}\Psi = \hat{H}\Psi$ داریم:
+$$\int_{-\infty}^{\infty} |\psi(x)|^2 \, dx = 1 \qquad \text{شرط بهنجارش (نرمال‌سازی)}$$</textarea>
+      </div>
+      <div id="live-preview" class="prose leading-relaxed" style="padding:10px;border:1px solid var(--border);border-radius:8px;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(root) {
+    if (root.__agRtlMathLib) return;
+/**
+ * Shared configuration schema and strict CSS/XSS sanitization for Antigravity RTL Math.
+ * Safe to run in both Node.js (main process / CLI) and renderer / browser contexts.
+ */
+
+const CONFIG_FILENAME = '.antigravity-rtl.json';
+
+const DIRECTION_MODES = ['smart', 'auto', 'force'];
+const DISPLAY_MATH_ALIGNS = ['center', 'left', 'right'];
+const UI_LANGS = ['en', 'fa'];
+
+const DEFAULT_CONFIG = Object.freeze({
+    isRTL: true,
+    forceRTL: false,
+    directionMode: 'smart',
+    mathIsolation: true,
+    mathPersianText: true,
+    mathDisplayAlign: 'center',
+    mathScale: '1.0',
+    faFont: '',
+    enFont: '',
+    codeFont: '',
+    lh: '1.6',
+    fs: '16',
+    uiLang: 'en'
+});
+
+const SAFE_FONT_NAME_RE = /^[\p{L}\p{N} ._-]{0,64}$/u;
+
+function clampNumericString(value, min, max, decimals, fallback) {
+    if (typeof value !== 'string' && typeof value !== 'number') return fallback;
+    const raw = String(value).trim();
+    if (!/^\d+(\.\d+)?$/.test(raw)) return fallback;
+    const num = Number(raw);
+    if (!Number.isFinite(num)) return fallback;
+    const clamped = Math.min(max, Math.max(min, num));
+    return decimals === 0 ? String(Math.round(clamped)) : clamped.toFixed(decimals).replace(/\.0+$/, '.0');
+}
+
+/**
+ * Sanitizes an untrusted config object (e.g., from disk or renderer console-message).
+ * Never lets arbitrary strings reach generated CSS.
+ */
+function sanitizeConfig(raw) {
+    const src = raw && typeof raw === 'object' ? raw : {};
+    const out = { ...DEFAULT_CONFIG };
+
+    if (typeof src.isRTL === 'boolean') out.isRTL = src.isRTL;
+    if (typeof src.mathIsolation === 'boolean') out.mathIsolation = src.mathIsolation;
+    if (typeof src.mathPersianText === 'boolean') out.mathPersianText = src.mathPersianText;
+
+    if (typeof src.directionMode === 'string' && DIRECTION_MODES.includes(src.directionMode)) {
+        out.directionMode = src.directionMode;
+        out.forceRTL = out.directionMode === 'force';
+    } else if (typeof src.forceRTL === 'boolean') {
+        out.forceRTL = src.forceRTL;
+        out.directionMode = src.forceRTL ? 'force' : DEFAULT_CONFIG.directionMode;
+    }
+
+    if (typeof src.mathDisplayAlign === 'string' && DISPLAY_MATH_ALIGNS.includes(src.mathDisplayAlign)) {
+        out.mathDisplayAlign = src.mathDisplayAlign;
+    }
+
+    if (typeof src.uiLang === 'string' && UI_LANGS.includes(src.uiLang)) {
+        out.uiLang = src.uiLang;
+    }
+
+    for (const key of ['faFont', 'enFont', 'codeFont']) {
+        if (typeof src[key] === 'string') {
+            const trimmed = src[key].trim();
+            if (SAFE_FONT_NAME_RE.test(trimmed)) {
+                out[key] = trimmed;
+            }
+        }
+    }
+
+    out.lh = clampNumericString(src.lh, 1.0, 3.0, 1, DEFAULT_CONFIG.lh);
+    out.fs = clampNumericString(src.fs, 10, 28, 0, DEFAULT_CONFIG.fs);
+    out.mathScale = clampNumericString(src.mathScale, 0.75, 1.5, 2, DEFAULT_CONFIG.mathScale);
+
+    return out;
+}
+
+
+/**
+ * Stylesheet generator for Antigravity RTL Math.
+ * Pure, dependency-free, safe to bundle into Electron renderer & Chrome extension.
+ */
+
+
+const ARABIC_UNICODE_RANGE = 'U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF';
+
+// Exclusions so prose font/direction/line-height rules NEVER leak into math, code, icons, or diagrams.
+const NON_PROSE_NOT = [
+    ':not(pre)',
+    ':not(pre *)',
+    ':not(code)',
+    ':not(code *)',
+    ':not(kbd)',
+    ':not(kbd *)',
+    ':not(samp)',
+    ':not(samp *)',
+    ':not(.katex)',
+    ':not(.katex *)',
+    ':not(.katex-display)',
+    ':not(.katex-display *)',
+    ':not(.katex-html)',
+    ':not(.katex-html *)',
+    ':not(.katex-mathml)',
+    ':not(.katex-mathml *)',
+    ':not(.math)',
+    ':not(.math *)',
+    ':not(.math-inline)',
+    ':not(.math-inline *)',
+    ':not(.math-display)',
+    ':not(.math-display *)',
+    ':not(mjx-container)',
+    ':not(mjx-container *)',
+    ':not(.MathJax)',
+    ':not(.MathJax *)',
+    ':not(.MathJax_Display)',
+    ':not(.MathJax_Display *)',
+    ':not(.MJXp-math)',
+    ':not(.MJXp-math *)',
+    ':not(math)',
+    ':not(math *)',
+    ':not(.mermaid)',
+    ':not(.mermaid *)',
+    ':not(svg)',
+    ':not(svg *)',
+    ':not(.monaco-editor)',
+    ':not(.monaco-editor *)',
+    ':not(.monaco-diff-editor)',
+    ':not(.monaco-diff-editor *)',
+    ':not(.xterm)',
+    ':not(.xterm *)',
+    ':not(.terminal)',
+    ':not(.terminal *)',
+    ':not(.codicon)',
+    ':not([class*="codicon-"])',
+    ':not(.google-symbols)'
+].join('');
+
+const PROSE_CONTAINERS = [
+    '.prose',
+    '.markdown-body',
+    '.rendered-markdown',
+    '.leading-relaxed',
+    '[data-testid="chat-message"]',
+    '[data-testid="conversation-view"]',
+    '[data-testid="user-input-step"]'
+];
+
+const PROSE_DESCENDANTS = PROSE_CONTAINERS
+    .map(c => `${c} :is(p, li, ul, ol, h1, h2, h3, h4, h5, h6, blockquote, table, th, td, dt, dd, strong, b, em, i, a, label, summary, figcaption, span, div)${NON_PROSE_NOT}`)
+    .join(',\n');
+
+const FORCE_RTL_SELECTORS = [
+    ...PROSE_CONTAINERS.map(c => `${c} > :is(p, li, ul, ol, h1, h2, h3, h4, h5, h6, blockquote, table, div)${NON_PROSE_NOT}:not([data-rtl-math-only="true"])`),
+    ...PROSE_CONTAINERS.map(c => `${c} :is(p, li, h1, h2, h3, h4, h5, h6, blockquote, td, th)${NON_PROSE_NOT}:not([data-rtl-math-only="true"])`),
+    'div:has(> [role="radiogroup"])',
+    'label[for^="ask-opt-"]'
+].join(',\n');
+
+/**
+ * Permanent CSS for the floating / topbar settings widget.
+ */
+function buildWidgetCSS() {
+    return `
+        #ag-rtl-panel {
+            transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.16s ease;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+        }
+        #ag-rtl-panel * {
+            box-sizing: border-box;
+        }
+        #ag-rtl-topbar-btn {
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+            line-height: 1 !important;
+        }
+        .ag-rtl-theme-panel {
+            background-color: var(--popover, var(--vscode-editorWidget-background, var(--card, #18181b))) !important;
+            color: var(--popover-foreground, var(--vscode-editorWidget-foreground, var(--foreground, #f4f4f5))) !important;
+            border: 1px solid var(--border, var(--vscode-widget-border, rgba(255, 255, 255, 0.14))) !important;
+            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+            border-radius: 12px !important;
+        }
+        .ag-rtl-sep {
+            height: 1px;
+            background: var(--border, var(--vscode-widget-border, rgba(255, 255, 255, 0.12)));
+            margin: 8px 0;
+            width: 100%;
+        }
+        .ag-rtl-input {
+            font-size: 11px !important;
+            border-radius: 5px !important;
+            padding: 4px 8px !important;
+            height: 25px !important;
+            width: 126px !important;
+            direction: ltr !important;
+            text-align: left !important;
+            background-color: var(--muted, var(--vscode-input-background, #27272a)) !important;
+            color: var(--foreground, var(--vscode-input-foreground, #f4f4f5)) !important;
+            border: 1px solid var(--border, var(--vscode-input-border, rgba(255, 255, 255, 0.16))) !important;
+            outline: none !important;
+        }
+        .ag-rtl-input:focus {
+            border-color: var(--color-primary, var(--vscode-focusBorder, #3b82f6)) !important;
+        }
+        .ag-rtl-seg {
+            display: inline-flex;
+            align-items: center;
+            background: var(--muted, rgba(255, 255, 255, 0.08));
+            border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+            border-radius: 6px;
+            padding: 2px;
+            gap: 2px;
+        }
+        .ag-rtl-seg-btn {
+            border: none;
+            background: transparent;
+            color: inherit;
+            opacity: 0.72;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 3px 7px;
+            border-radius: 4px;
+            cursor: pointer;
+            line-height: 1.2;
+            transition: background-color 0.12s ease, opacity 0.12s ease;
+        }
+        .ag-rtl-seg-btn:hover {
+            opacity: 1;
+        }
+        .ag-rtl-seg-btn[data-active="true"] {
+            background: var(--color-primary, var(--vscode-button-background, #2563eb));
+            color: #ffffff;
+            opacity: 1;
+        }
+        .ag-rtl-range {
+            width: 82px;
+            accent-color: var(--color-primary, var(--vscode-button-background, #3b82f6));
+            cursor: pointer;
+        }
+        .ag-rtl-kbd {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 5px;
+            font-size: 10px;
+            font-weight: 600;
+            line-height: 1;
+            color: var(--muted-foreground, #a1a1aa);
+            background-color: var(--muted, rgba(255, 255, 255, 0.08));
+            border: 1px solid var(--border, rgba(255, 255, 255, 0.15));
+            border-radius: 4px;
+        }
+    `;
+}
+
+/**
+ * Generates the active RTL + Math Isolation + Typography CSS for a sanitized config.
+ * `fontSource` may be a base64-encoded woff2 string or a font URL/path.
+ */
+function buildDynamicCSS(rawConfig, fontSource = '') {
+    const cfg = sanitizeConfig(rawConfig);
+
+    if (!cfg.isRTL) {
+        // When RTL is disabled, keep LTR prose clean while STILL preserving math isolation if enabled.
+        return buildDisabledCSS(cfg);
+    }
+
+    let faFontRule = '';
+    let faFontName = "'PersianOnlyFont'";
+
+    if (cfg.faFont) {
+        faFontName = "'UserPersianFont', 'PersianOnlyFont'";
+        const baseFaFont = cfg.faFont.replace(/[-\s]?Regular$/i, '');
+        faFontRule = `
+            @font-face {
+                font-family: 'UserPersianFont';
+                src: local('${cfg.faFont}'), local('${baseFaFont}');
+                font-weight: 400;
+                unicode-range: ${ARABIC_UNICODE_RANGE};
+            }
+            @font-face {
+                font-family: 'UserPersianFont';
+                src: local('${baseFaFont} Bold'), local('${baseFaFont}-Bold'), local('${baseFaFont}Bold');
+                font-weight: 700;
+                unicode-range: ${ARABIC_UNICODE_RANGE};
+            }
+        `;
+    }
+
+    const isUrlFont = /^(?:https?:|chrome-extension:|moz-extension:|file:|\/|\.\.?\/|assets\/)/i.test(fontSource || '');
+    const offlineFontSrc = fontSource
+        ? isUrlFont
+            ? `local('Vazirmatn'), local('Vazirmatn Variable'), local('Vazir'), url('${fontSource}') format('woff2')`
+            : `local('Vazirmatn'), local('Vazirmatn Variable'), local('Vazir'), url('data:font/woff2;base64,${fontSource}') format('woff2')`
+        : `local('Vazirmatn'), local('Vazirmatn Variable'), local('Vazir')`;
+
+    const enFontStr = cfg.enFont
+        ? `'${cfg.enFont}', ui-sans-serif, system-ui, -apple-system, sans-serif`
+        : 'ui-sans-serif, system-ui, -apple-system, sans-serif';
+
+    const fontStack = `${faFontName}, ${enFontStr}, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"`;
+
+    const codeFontStr = cfg.codeFont
+        ? `'${cfg.codeFont}', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace`
+        : 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+
+    const forceRtlBlock = cfg.directionMode === 'force' ? `
+        ${FORCE_RTL_SELECTORS} {
+            direction: rtl !important;
+            text-align: right !important;
+            unicode-bidi: isolate !important;
+        }
+    ` : '';
+
+    const mathScaleRule = cfg.mathScale !== '1.0' ? `
+        .katex {
+            font-size: calc(1.21em * ${cfg.mathScale}) !important;
+        }
+        mjx-container, .MathJax {
+            font-size: calc(100% * ${cfg.mathScale}) !important;
+        }
+    ` : '';
+
+    const mathPersianTextRule = cfg.mathPersianText ? `
+        /* Persian/Arabic inside LaTeX \\text{...} or MathML <mtext> renders in Vazirmatn + RTL without flipping math */
+        .katex [data-rtl-math-text="rtl"],
+        .katex [data-rtl-math-text="rtl"] *,
+        mjx-container [data-rtl-math-text="rtl"],
+        mjx-container [data-rtl-math-text="rtl"] *,
+        math [data-rtl-math-text="rtl"],
+        math [data-rtl-math-text="rtl"] * {
+            direction: rtl !important;
+            unicode-bidi: isolate !important;
+        }
+        .katex [data-rtl-math-text="rtl"],
+        .katex [data-rtl-math-text="rtl"] *,
+        .katex .mord.text:not(.textsf):not(.texttt):not(.textbb):not(.textfrak):not(.textscr),
+        .katex .mord.text:not(.textsf):not(.texttt):not(.textbb):not(.textfrak):not(.textscr) > .mord,
+        mjx-mtext,
+        mtext {
+            font-family: ${faFontName}, KaTeX_Main, "Times New Roman", serif !important;
+        }
+    ` : '';
+
+    const mathIsolationCSS = cfg.mathIsolation ? `
+        /* ================================================================
+         * MATH ISOLATION SHIELD (KaTeX, MathJax v2/v3/v4, MathML, Remark)
+         * Ensures mathematical notation is ALWAYS LTR and keeps math fonts.
+         * ================================================================ */
+        .katex,
+        .katex-display,
+        .katex-html,
+        .katex-mathml,
+        .katex-error,
+        .math,
+        .math-inline,
+        .math-display,
+        mjx-container,
+        .MathJax,
+        .MathJax_Display,
+        .MathJax_SVG,
+        .MathJax_SVG_Display,
+        .MJXp-math,
+        math,
+        [data-math],
+        [data-latex],
+        [data-katex] {
+            direction: ltr !important;
+            unicode-bidi: isolate !important;
+        }
+
+        /* Neutralize any inherited unicode-bidi: plaintext or direction: rtl on internal math spans */
+        .katex *,
+        .katex-html *,
+        .katex-mathml *,
+        mjx-container *,
+        .MathJax *,
+        .MJXp-math *,
+        math * {
+            direction: ltr !important;
+            unicode-bidi: normal !important;
+        }
+
+        /* Protect KaTeX vertical spacing, flex direction, and internal alignments */
+        .katex {
+            line-height: 1.2 !important;
+            text-indent: 0 !important;
+            text-rendering: auto;
+        }
+        .katex .smash {
+            line-height: 0 !important;
+        }
+        .katex .hbox,
+        .katex .thinbox {
+            flex-direction: row !important;
+        }
+        .katex .vbox {
+            flex-direction: column !important;
+        }
+        .katex .msupsub,
+        .katex .svg-align,
+        .katex .cd-label-left,
+        .katex .mtable .col-align-l > .vlist-t {
+            text-align: left !important;
+        }
+        .katex .cd-label-right,
+        .katex .mtable .col-align-r > .vlist-t {
+            text-align: right !important;
+        }
+        .katex .mfrac > span > span,
+        .katex .op-limits > .vlist-t,
+        .katex .accent > .vlist-t,
+        .katex .mover,
+        .katex .munder,
+        .katex .mtable .col-align-c > .vlist-t {
+            text-align: center !important;
+        }
+
+        /* Display math containers ($$...$$): keep block alignment clean & scrollable on narrow panes */
+        .katex-display,
+        .math-display,
+        mjx-container[display="true"],
+        .MathJax_Display,
+        .MathJax_SVG_Display,
+        [data-rtl-math-only="true"] {
+            display: block !important;
+            direction: ltr !important;
+            unicode-bidi: isolate !important;
+            text-align: ${cfg.mathDisplayAlign} !important;
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            max-width: 100% !important;
+            padding-block: 0.25em !important;
+        }
+        .katex-display > .katex {
+            display: block !important;
+            text-align: ${cfg.mathDisplayAlign} !important;
+            white-space: nowrap !important;
+        }
+
+        ${mathScaleRule}
+        ${mathPersianTextRule}
+    ` : '';
+
+    return `
+        ${faFontRule}
+        @font-face {
+            font-family: 'PersianOnlyFont';
+            src: ${offlineFontSrc};
+            font-weight: 100 900;
+            unicode-range: ${ARABIC_UNICODE_RANGE};
+        }
+
+        :root {
+            --vscode-chat-font-family: ${fontStack} !important;
+        }
+        :root, :host, html, body {
+            font-family: ${fontStack} !important;
+        }
+
+        /* Apply typography to prose WITHOUT clobbering math fonts, code fonts, SVGs, or icon fonts */
+        [dir="rtl"]${NON_PROSE_NOT},
+        ${PROSE_CONTAINERS.join(',\n')},
+        ${PROSE_DESCENDANTS},
+        [contenteditable="true"],
+        [contenteditable="true"] p,
+        [data-lexical-text="true"],
+        label[for^="ask-opt-"],
+        textarea[data-testid="ask-question-writein"] {
+            font-family: ${fontStack} !important;
+        }
+
+        .prose,
+        .markdown-body,
+        .rendered-markdown,
+        .leading-relaxed,
+        [data-testid="chat-message"],
+        [data-testid="conversation-view"],
+        [contenteditable="true"],
+        [contenteditable="true"] p {
+            font-size: ${cfg.fs}px !important;
+        }
+
+        /* Base plaintext BiDi on prose blocks (never on * inside math/code!) */
+        :is(.prose, .markdown-body, .rendered-markdown, .leading-relaxed, [data-testid="chat-message"], [data-testid="conversation-view"])
+            :is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, li, td, th, dt, dd, summary, figcaption)${NON_PROSE_NOT} {
+            unicode-bidi: plaintext;
+            text-align: start;
+        }
+
+        label[for^="ask-opt-"],
+        textarea[data-testid="ask-question-writein"] {
+            unicode-bidi: plaintext;
+            text-align: start;
+        }
+        label[for^="ask-opt-"][dir="rtl"] {
+            direction: rtl;
+            text-align: right;
+        }
+
+        ${forceRtlBlock}
+
+        /* Explicit dir="rtl" / dir="ltr" support on paragraphs, headings, lists, blockquotes, tables */
+        :is(p, h1, h2, h3, h4, h5, h6, li, blockquote, td, th, dt, dd)[dir="rtl"]${NON_PROSE_NOT} {
+            direction: rtl;
+            text-align: right;
+            unicode-bidi: isolate;
+        }
+        :is(p, h1, h2, h3, h4, h5, h6, li, blockquote, td, th, dt, dd)[dir="ltr"]${NON_PROSE_NOT} {
+            direction: ltr;
+            text-align: left;
+            unicode-bidi: isolate;
+        }
+
+        /* RTL List Padding Fix (top-level and nested) */
+        ul[dir="rtl"], ol[dir="rtl"],
+        [dir="rtl"] > ul, [dir="rtl"] > ol,
+        .prose[dir="rtl"] ul:not([dir="ltr"]), .prose[dir="rtl"] ol:not([dir="ltr"]) {
+            direction: rtl;
+            padding-left: 0 !important;
+            padding-right: 1.5rem !important;
+        }
+        ul[dir="ltr"], ol[dir="ltr"] {
+            direction: ltr;
+            padding-right: 0 !important;
+            padding-left: 1.5rem !important;
+        }
+        [dir="rtl"] ul[dir="rtl"] ul:not([dir="ltr"]),
+        [dir="rtl"] ul[dir="rtl"] ol:not([dir="ltr"]),
+        [dir="rtl"] ol[dir="rtl"] ul:not([dir="ltr"]),
+        [dir="rtl"] ol[dir="rtl"] ol:not([dir="ltr"]) {
+            padding-left: 0 !important;
+            padding-right: 2rem !important;
+        }
+
+        /* RTL Blockquote Border Flip */
+        blockquote[dir="rtl"],
+        [dir="rtl"] > blockquote:not([dir="ltr"]) {
+            direction: rtl;
+            text-align: right;
+            border-left-width: 0 !important;
+            border-right-width: 3px !important;
+            border-right-style: solid;
+            border-right-color: var(--border, rgba(148, 163, 184, 0.45));
+            padding-left: 0 !important;
+            padding-right: 1rem !important;
+        }
+
+        /* RTL Tables */
+        table[dir="rtl"] {
+            direction: rtl;
+        }
+        table[dir="rtl"] th,
+        table[dir="rtl"] td {
+            text-align: start;
+        }
+
+        /* Line height on prose text only (never inside math or code) */
+        :is(.prose, .markdown-body, .rendered-markdown, .leading-relaxed, [data-testid="chat-message"], [data-testid="conversation-view"])
+            :is(p, li, blockquote, td, th)${NON_PROSE_NOT},
+        .leading-relaxed${NON_PROSE_NOT},
+        [data-testid="user-input-step"] div${NON_PROSE_NOT},
+        [data-lexical-text="true"],
+        [contenteditable="true"],
+        [contenteditable="true"] p,
+        label[for^="ask-opt-"] {
+            line-height: ${cfg.lh} !important;
+        }
+
+        /* Prompt composer isolation */
+        [contenteditable="true"],
+        [contenteditable="true"] * {
+            unicode-bidi: isolate !important;
+            text-align: start !important;
+        }
+
+        /* Sidebar & truncated items auto-direction */
+        [role="navigation"][aria-label="Sidebar"] *,
+        .truncate {
+            unicode-bidi: plaintext !important;
+            text-align: start !important;
+        }
+
+        /* Thinking Blocks (Keep LTR) */
+        .cursor-edit.text-secondary-foreground,
+        .cursor-edit.text-secondary-foreground * {
+            direction: ltr !important;
+            text-align: left !important;
+            unicode-bidi: isolate !important;
+        }
+
+        /* Protect icon fonts */
+        .codicon, [class*="codicon-"] {
+            font-family: codicon !important;
+        }
+        .google-symbols {
+            font-family: "Google Symbols" !important;
+        }
+
+        /* Protect Mermaid / Diagram containers from RTL reversal */
+        .mermaid, .mermaid * {
+            direction: ltr !important;
+            unicode-bidi: isolate !important;
+        }
+
+        /* Strict Protection for Inline Code, Code Blocks, Monaco Editor, Diff Editor, and Terminal */
+        code, code *,
+        kbd, samp {
+            direction: ltr !important;
+            unicode-bidi: isolate !important;
+            font-family: ${codeFontStr} !important;
+        }
+        pre, pre * {
+            direction: ltr !important;
+            text-align: left !important;
+            unicode-bidi: isolate !important;
+            font-family: ${codeFontStr} !important;
+        }
+        .monaco-editor, .monaco-editor *,
+        .monaco-diff-editor, .monaco-diff-editor *,
+        .part.terminal, .part.terminal *,
+        .terminal-wrapper, .terminal-wrapper *,
+        .xterm, .xterm * {
+            direction: ltr !important;
+            text-align: left !important;
+            unicode-bidi: normal !important;
+            ${cfg.codeFont ? `font-family: ${codeFontStr} !important;` : ''}
+        }
+
+        ${mathIsolationCSS}
+    `;
+}
+
+/**
+ * Generates CSS when RTL is toggled off (restores clean LTR while optionally keeping math shield).
+ */
+function buildDisabledCSS(rawConfig) {
+    const cfg = sanitizeConfig(rawConfig);
+    return `
+        [data-testid="conversation-view"] :is(p, li)${NON_PROSE_NOT},
+        .prose :is(p, li)${NON_PROSE_NOT},
+        .markdown-body :is(p, li)${NON_PROSE_NOT},
+        .leading-relaxed${NON_PROSE_NOT},
+        [contenteditable="true"],
+        [contenteditable="true"] p {
+            direction: ltr !important;
+            text-align: left !important;
+            unicode-bidi: normal !important;
+        }
+        ${cfg.mathIsolation ? `
+        .katex, .katex-display, .katex-html, mjx-container, .MathJax, math {
+            direction: ltr !important;
+            unicode-bidi: isolate !important;
+        }
+        ` : ''}
+    `;
+}
+
+
+/**
+ * Shared DOM direction & Math Isolation runtime engine for Antigravity RTL Math.
+ * Works across Standalone App, Antigravity IDE, Remote Control Extension, and JSDOM tests.
+ */
+
+
+const ZERO_WIDTH_RE = /[\u200B-\u200F\uFEFF]/g;
+const RTL_CHAR_RE = /[\u0591-\u07FF\u08A0-\u08FF\uFB1D-\uFDFD\uFE70-\uFEFC]/;
+const RTL_CHAR_GLOBAL_RE = /[\u0591-\u07FF\u08A0-\u08FF\uFB1D-\uFDFD\uFE70-\uFEFC]/g;
+const LTR_CHAR_RE = /[A-Za-z\u00C0-\u024F\u0370-\u03FF\u0400-\u04FF]/;
+const LTR_CHAR_GLOBAL_RE = /[A-Za-z\u00C0-\u024F\u0370-\u03FF\u0400-\u04FF]/g;
+const STRONG_CHAR_RE = /[A-Za-z\u00C0-\u024F\u0370-\u03FF\u0400-\u04FF\u0591-\u07FF\u08A0-\u08FF\uFB1D-\uFDFD\uFE70-\uFEFC]/;
+
+const MATH_ROOT_SELECTOR = [
+    '.katex',
+    '.katex-display',
+    '.math',
+    '.math-inline',
+    '.math-display',
+    'mjx-container',
+    '.MathJax',
+    '.MathJax_Display',
+    '.MathJax_SVG',
+    '.MathJax_SVG_Display',
+    '.MJXp-math',
+    'math',
+    '[data-math]',
+    '[data-latex]',
+    '[data-katex]'
+].join(', ');
+
+const SKIP_SUBTREE_SELECTOR = [
+    'pre',
+    'code',
+    'kbd',
+    'samp',
+    'svg',
+    'canvas',
+    '.mermaid',
+    '.monaco-editor',
+    '.monaco-diff-editor',
+    '.terminal',
+    '.xterm',
+    '.katex-html',
+    '.katex-mathml',
+    MATH_ROOT_SELECTOR
+].join(', ');
+
+const DISPLAY_MATH_SELECTOR = [
+    '.katex-display',
+    '.math-display',
+    'mjx-container[display="true"]',
+    '.MathJax_Display',
+    '.MathJax_SVG_Display'
+].join(', ');
+
+const MATH_TEXT_SELECTOR = [
+    '.katex .mord.text',
+    '.katex .text',
+    'mjx-mtext',
+    'math mtext'
+].join(', ');
+
+const PROSE_ROOTS = [
+    '.prose',
+    '.markdown-body',
+    '.rendered-markdown',
+    '.leading-relaxed',
+    '[data-testid="chat-message"]',
+    '[data-testid="conversation-view"]'
+];
+
+const BLOCK_SELECTOR = [
+    ...PROSE_ROOTS.map(r => `${r} > *`),
+    ...PROSE_ROOTS.map(r => `${r} p`),
+    ...PROSE_ROOTS.map(r => `${r} li`),
+    ...PROSE_ROOTS.map(r => `${r} ul`),
+    ...PROSE_ROOTS.map(r => `${r} ol`),
+    ...PROSE_ROOTS.map(r => `${r} h1`),
+    ...PROSE_ROOTS.map(r => `${r} h2`),
+    ...PROSE_ROOTS.map(r => `${r} h3`),
+    ...PROSE_ROOTS.map(r => `${r} h4`),
+    ...PROSE_ROOTS.map(r => `${r} h5`),
+    ...PROSE_ROOTS.map(r => `${r} h6`),
+    ...PROSE_ROOTS.map(r => `${r} blockquote`),
+    ...PROSE_ROOTS.map(r => `${r} table`),
+    ...PROSE_ROOTS.map(r => `${r} th`),
+    ...PROSE_ROOTS.map(r => `${r} td`),
+    ...PROSE_ROOTS.map(r => `${r} dt`),
+    ...PROSE_ROOTS.map(r => `${r} dd`),
+    ...PROSE_ROOTS.map(r => `${r} summary`),
+    ...PROSE_ROOTS.map(r => `${r} figcaption`),
+    '[data-testid="user-input-step"]',
+    '[data-testid="user-input-step"] > *',
+    'div:has(> [role="radiogroup"])',
+    'label[for^="ask-opt-"]'
+].join(', ');
+
+const INPUT_SELECTOR = [
+    '[contenteditable="true"] p',
+    '[contenteditable="true"]',
+    'textarea[data-testid="ask-question-writein"]'
+].join(', ');
+
+function setAttr(el, name, value) {
+    if (value == null) {
+        if (el.hasAttribute(name)) el.removeAttribute(name);
+    } else if (el.getAttribute(name) !== value) {
+        el.setAttribute(name, value);
+    }
+}
+
+/**
+ * Extracts readable prose text from an element while skipping math formulas,
+ * code blocks/inline code, SVGs, diagrams, and editors.
+ */
+function extractProseText(root) {
+    const chunks = [];
+    function walk(node) {
+        if (!node) return;
+        if (node.nodeType === 3) {
+            chunks.push(node.nodeValue || '');
+            return;
+        }
+        if (node.nodeType !== 1) return;
+        if (node !== root && typeof node.matches === 'function' && node.matches(SKIP_SUBTREE_SELECTOR)) {
+            return;
+        }
+        const children = node.childNodes;
+        if (!children) return;
+        for (let i = 0; i < children.length; i++) {
+            walk(children[i]);
+        }
+    }
+    walk(root);
+    return chunks.join(' ').replace(ZERO_WIDTH_RE, '').trim();
+}
+
+/**
+ * Detects 'rtl', 'ltr', or 'auto' from prose text under the selected mode.
+ */
+function detectTextDirection(proseText, mode = 'smart') {
+    const clean = (proseText || '').replace(ZERO_WIDTH_RE, '').trim();
+    if (mode === 'force') return 'rtl';
+    if (!clean) return 'auto';
+
+    const first = clean.match(STRONG_CHAR_RE);
+    if (!first) return 'auto';
+
+    if (RTL_CHAR_RE.test(first[0])) {
+        return 'rtl';
+    }
+
+    if (mode === 'smart') {
+        const rtlCount = (clean.match(RTL_CHAR_GLOBAL_RE) || []).length;
+        const ltrCount = (clean.match(LTR_CHAR_GLOBAL_RE) || []).length;
+        if (rtlCount >= 2 && rtlCount >= ltrCount * 0.35) {
+            return 'rtl';
+        }
+    }
+
+    return 'ltr';
+}
+
+function isProtectedSkipElement(el) {
+    if (!el || typeof el.matches !== 'function') return false;
+    if (el.matches(SKIP_SUBTREE_SELECTOR)) return true;
+    if (typeof el.closest === 'function') {
+        if (el.closest('.monaco-editor, .monaco-diff-editor, .terminal, .xterm, pre, code, .mermaid, .katex, mjx-container, .MathJax, math')) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function isOurOwnNode(node) {
+    if (!node) return false;
+    let cur = node.nodeType === 1 ? node : node.parentElement;
+    while (cur) {
+        if (cur.id && cur.id.startsWith('ag-rtl-')) {
+            return true;
+        }
+        cur = cur.parentElement;
+    }
+    return false;
+}
+
+/**
+ * Applies direction attributes to inputs, chat/artifact prose blocks, and math text spans.
+ */
+function applyRtlMathPass(doc, rawConfig) {
+    if (!doc) return;
+    const cfg = sanitizeConfig(rawConfig);
+
+    // 1. Always protect math roots when mathIsolation is enabled (even if RTL is toggled off)
+    if (cfg.mathIsolation) {
+        doc.querySelectorAll(MATH_ROOT_SELECTOR).forEach(el => {
+            setAttr(el, 'dir', 'ltr');
+        });
+
+        doc.querySelectorAll(MATH_TEXT_SELECTOR).forEach(el => {
+            if (!cfg.mathPersianText) {
+                setAttr(el, 'data-rtl-math-text', null);
+                setAttr(el, 'dir', null);
+                return;
+            }
+            const text = (el.textContent || '').replace(ZERO_WIDTH_RE, '').trim();
+            if (text && RTL_CHAR_RE.test(text) && detectTextDirection(text, 'smart') === 'rtl') {
+                setAttr(el, 'data-rtl-math-text', 'rtl');
+                setAttr(el, 'dir', 'rtl');
+            } else {
+                setAttr(el, 'data-rtl-math-text', null);
+                setAttr(el, 'dir', null);
+            }
+        });
+    } else {
+        doc.querySelectorAll('[data-rtl-math-text]').forEach(el => {
+            setAttr(el, 'data-rtl-math-text', null);
+            setAttr(el, 'dir', null);
+        });
+    }
+
+    // 2. If RTL is disabled, revert prose blocks cleanly to LTR/neutral
+    if (!cfg.isRTL) {
+        doc.querySelectorAll('[data-rtl-math-only]').forEach(el => setAttr(el, 'data-rtl-math-only', null));
+        doc.querySelectorAll(INPUT_SELECTOR).forEach(el => setAttr(el, 'dir', null));
+        doc.querySelectorAll(BLOCK_SELECTOR).forEach(el => {
+            if (isProtectedSkipElement(el)) return;
+            setAttr(el, 'dir', 'ltr');
+        });
+        return;
+    }
+
+    // 3. Inputs (prompt editor & ask-question textarea)
+    doc.querySelectorAll(INPUT_SELECTOR).forEach(el => {
+        if (isOurOwnNode(el)) return;
+        const raw = el.tagName === 'TEXTAREA' ? el.value : el.textContent;
+        const clean = (raw || '').replace(ZERO_WIDTH_RE, '').trim();
+        if (!clean) {
+            setAttr(el, 'dir', null);
+            return;
+        }
+        const dir = detectTextDirection(clean, cfg.directionMode === 'force' ? 'force' : cfg.directionMode);
+        setAttr(el, 'dir', dir === 'auto' ? null : dir);
+    });
+
+    // 4. Prose blocks (math-aware!)
+    doc.querySelectorAll(BLOCK_SELECTOR).forEach(el => {
+        if (isOurOwnNode(el) || isProtectedSkipElement(el)) return;
+
+        const proseText = extractProseText(el);
+        const hasProseStrong = STRONG_CHAR_RE.test(proseText);
+        const hasDisplayMath = Boolean(el.querySelector && el.querySelector(DISPLAY_MATH_SELECTOR));
+
+        // Standalone display math wrapper (e.g. <p><span class="katex-display">...</span></p>)
+        if (hasDisplayMath && !hasProseStrong) {
+            setAttr(el, 'data-rtl-math-only', 'true');
+            setAttr(el, 'dir', 'ltr');
+            return;
+        }
+        setAttr(el, 'data-rtl-math-only', null);
+
+        // Inline-only math or code block with zero surrounding strong prose text (e.g. <p>$x = 1$</p>)
+        if (!hasProseStrong && el.querySelector && (el.querySelector(MATH_ROOT_SELECTOR) || el.querySelector('pre, code'))) {
+            setAttr(el, 'dir', 'ltr');
+            return;
+        }
+
+        const dir = detectTextDirection(proseText, cfg.directionMode);
+        setAttr(el, 'dir', dir);
+    });
+}
+
+/**
+ * Watches DOM mutations (including characterData during AI streaming), inputs, and focus
+ * with a snappy 120ms debounce.
+ */
+function watchDom(doc, getConfig, onTick) {
+    let timer = null;
+    const schedule = () => {
+        if (timer) return;
+        timer = setTimeout(() => {
+            timer = null;
+            onTick();
+        }, 120);
+    };
+
+    const root = doc.body || doc.documentElement;
+    if (root) {
+        root.addEventListener('input', schedule, { capture: true });
+        root.addEventListener('focusin', schedule, { capture: true });
+
+        const ObserverCtor = (doc.defaultView && doc.defaultView.MutationObserver)
+            || (typeof MutationObserver === 'function' ? MutationObserver : null);
+        if (ObserverCtor) {
+            const observer = new ObserverCtor((mutations) => {
+                const hasExternal = mutations.some((m) => {
+                    if (m.type === 'characterData') {
+                        return !isOurOwnNode(m.target);
+                    }
+                    for (const node of m.addedNodes || []) {
+                        if (!isOurOwnNode(node)) return true;
+                    }
+                    return false;
+                });
+                if (hasExternal) schedule();
+            });
+            observer.observe(root, { childList: true, subtree: true, characterData: true });
+            return () => observer.disconnect();
+        }
+    }
+    return () => {};
+}
+
+/**
+ * Alt+R (⌥R on macOS). Excludes Cmd/Ctrl so VS Code regex toggle (⌥⌘R) and AltGr work normally.
+ */
+function bindToggleShortcut(doc, onToggle) {
+    doc.addEventListener('keydown', (e) => {
+        if (e.altKey && !e.metaKey && !e.ctrlKey && e.code === 'KeyR') {
+            e.preventDefault();
+            onToggle();
+        }
+    });
+}
+
+
+/**
+ * Pure-DOM (Trusted Types & CSP safe) Settings Panel & Trigger Controller.
+ * Zero innerHTML usage — works seamlessly in Antigravity Standalone, Antigravity IDE,
+ * Remote Control Browser Extension, and the local Playground.
+ */
+
+
+const LABELS = {
+    en: {
+        title: 'Antigravity RTL + Math',
+        enabled: 'Enabled',
+        disabled: 'Disabled',
+        dirMode: 'Direction Mode',
+        smart: 'Smart',
+        auto: 'Auto',
+        force: 'Force',
+        mathShield: 'Math LTR Shield',
+        mathPersian: 'Persian \\text{} in Math',
+        eqAlign: 'Equation Align',
+        left: 'Left',
+        center: 'Center',
+        right: 'Right',
+        mathScale: 'Math Scale',
+        faFont: 'FA/AR Font',
+        enFont: 'EN Font',
+        codeFont: 'Code Font',
+        lineHeight: 'Line Height',
+        fontSize: 'Font Size',
+        resetAll: 'Reset defaults',
+        phFa: 'Default: Vazirmatn',
+        phEn: 'Default: System',
+        phCode: 'Monaco, Consolas',
+        statusOn: '⇄ RTL+Math: On',
+        statusOff: '⇄ RTL+Math: Off',
+        btnText: 'RTL+Math'
+    },
+    fa: {
+        title: 'راست‌چین + فرمول ریاضی',
+        enabled: 'فعال',
+        disabled: 'غیرفعال',
+        dirMode: 'حالت جهت‌دهی',
+        smart: 'هوشمند',
+        auto: 'خودکار',
+        force: 'اجباری',
+        mathShield: 'محافظ LTR فرمول‌ها',
+        mathPersian: 'فارسی در \\text{}',
+        eqAlign: 'چیدمان فرمول بلوکی',
+        left: 'چپ',
+        center: 'وسط',
+        right: 'راست',
+        mathScale: 'مقیاس فرمول',
+        faFont: 'فونت فارسی/عربی',
+        enFont: 'فونت انگلیسی',
+        codeFont: 'فونت کد',
+        lineHeight: 'فاصله خطوط',
+        fontSize: 'اندازه فونت',
+        resetAll: 'بازنشانی تنظیمات',
+        phFa: 'پیش‌فرض: Vazirmatn',
+        phEn: 'پیش‌فرض: سیستم',
+        phCode: 'Monaco, Consolas',
+        statusOn: '⇄ راست‌چین+ریاضی: روشن',
+        statusOff: '⇄ راست‌چین+ریاضی: خاموش',
+        btnText: 'RTL+Math'
+    }
+};
+
+function createEl(doc, tag, styleText, children, attrs) {
+    const node = doc.createElement(tag);
+    if (styleText) node.style.cssText = styleText;
+    if (attrs) {
+        for (const [k, v] of Object.entries(attrs)) {
+            if (k === 'className') node.className = v;
+            else if (k === 'textContent') node.textContent = v;
+            else if (k in node && (k === 'id' || k === 'type' || k === 'title' || k === 'value' || k === 'placeholder' || k === 'min' || k === 'max' || k === 'step' || k === 'href')) {
+                node[k] = v;
+            } else {
+                node.setAttribute(k, String(v));
+            }
+        }
+    }
+    if (children != null) {
+        const list = Array.isArray(children) ? children : [children];
+        for (const child of list) {
+            if (child == null) continue;
+            node.appendChild(typeof child === 'string' ? doc.createTextNode(child) : child);
+        }
+    }
+    return node;
+}
+
+function createSvgIcon(doc, viewBox, width, height, paths) {
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = doc.createElementNS(NS, 'svg');
+    svg.setAttribute('width', String(width));
+    svg.setAttribute('height', String(height));
+    svg.setAttribute('viewBox', viewBox);
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '2');
+    svg.setAttribute('stroke-linecap', 'round');
+    svg.setAttribute('stroke-linejoin', 'round');
+    for (const d of paths) {
+        if (typeof d === 'string') {
+            const p = doc.createElementNS(NS, 'path');
+            p.setAttribute('d', d);
+            svg.appendChild(p);
+        } else if (d.circle) {
+            const c = doc.createElementNS(NS, 'circle');
+            c.setAttribute('cx', d.circle[0]);
+            c.setAttribute('cy', d.circle[1]);
+            c.setAttribute('r', d.circle[2]);
+            svg.appendChild(c);
+        }
+    }
+    return svg;
+}
+
+function createSwitch(doc, id, checked, onChange) {
+    const knob = createEl(
+        doc,
+        'span',
+        `display:block;width:14px;height:14px;border-radius:50%;background:#ffffff;position:absolute;top:3px;left:${checked ? '21px' : '3px'};transition:left 0.18s ease;box-shadow:0 1px 2px rgba(0,0,0,0.3);`
+    );
+    const btn = createEl(
+        doc,
+        'button',
+        `cursor:pointer;width:38px;height:20px;border-radius:9999px;border:none;background:${checked ? 'var(--color-primary, var(--vscode-button-background, #2563eb))' : 'rgba(148,163,184,0.38)'};position:relative;padding:0;outline:none;transition:background-color 0.18s ease;flex-shrink:0;`,
+        knob,
+        { id, type: 'button', role: 'switch', 'aria-checked': String(checked) }
+    );
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        onChange();
+    });
+    return {
+        btn,
+        setChecked(next) {
+            btn.setAttribute('aria-checked', String(next));
+            btn.style.background = next
+                ? 'var(--color-primary, var(--vscode-button-background, #2563eb))'
+                : 'rgba(148,163,184,0.38)';
+            knob.style.left = next ? '21px' : '3px';
+        }
+    };
+}
+
+/**
+ * Initializes the full RTL + Math controller and settings UI in the given window/document.
+ */
+function mountRtlMathController({
+    doc = document,
+    win = window,
+    mode = 'app',
+    hideTrigger = false,
+    initialConfig = {},
+    fontSource = '',
+    fontBase64 = '',
+    onSaveConfig = null
+} = {}) {
+    const state = sanitizeConfig(initialConfig);
+    const resolvedFontSource = fontSource || fontBase64;
+
+    // 1. Inject permanent widget stylesheet
+    if (!doc.getElementById('ag-rtl-widget-style')) {
+        const wStyle = doc.createElement('style');
+        wStyle.id = 'ag-rtl-widget-style';
+        wStyle.textContent = buildWidgetCSS();
+        (doc.head || doc.documentElement).appendChild(wStyle);
+    }
+
+    // 2. Dynamic RTL + Math stylesheet
+    let dynStyle = doc.getElementById('ag-rtl-dynamic-style');
+    if (!dynStyle) {
+        dynStyle = doc.createElement('style');
+        dynStyle.id = 'ag-rtl-dynamic-style';
+        (doc.head || doc.documentElement).appendChild(dynStyle);
+    }
+
+    function save() {
+        if (typeof onSaveConfig === 'function') {
+            try {
+                onSaveConfig({ ...state });
+            } catch (_) {}
+        }
+    }
+
+    function applyAll() {
+        dynStyle.textContent = buildDynamicCSS(state, resolvedFontSource);
+        applyRtlMathPass(doc, state);
+        if (typeof win.dispatchEvent === 'function' && typeof win.Event === 'function') {
+            try {
+                win.dispatchEvent(new win.Event('resize'));
+            } catch (_) {}
+        }
+    }
+
+    // 3. Build Pure-DOM Settings Panel
+    const existingPanel = doc.getElementById('ag-rtl-panel');
+    if (existingPanel) existingPanel.remove();
+
+    const panel = createEl(
+        doc,
+        'div',
+        'position:fixed;z-index:2147483645;width:296px;padding:13px;display:none;direction:ltr;text-align:left;font-size:12px;user-select:none;',
+        null,
+        { id: 'ag-rtl-panel', className: 'ag-rtl-theme-panel' }
+    );
+
+    const isMac = typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent || navigator.platform || '');
+
+    // Header
+    const titleSpan = createEl(doc, 'span', 'font-weight:700;font-size:12px;letter-spacing:0.2px;');
+    const langBtn = createEl(
+        doc,
+        'button',
+        'border:1px solid var(--border,rgba(255,255,255,0.16));background:transparent;color:inherit;border-radius:4px;font-size:10px;font-weight:600;padding:2px 6px;cursor:pointer;opacity:0.85;',
+        state.uiLang === 'fa' ? 'EN' : 'فا',
+        { id: 'ag-rtl-lang-btn', type: 'button', title: 'Switch panel language (EN/FA)' }
+    );
+    const kbdWrap = createEl(doc, 'span', 'display:inline-flex;align-items:center;gap:3px;', [
+        createEl(doc, 'kbd', null, isMac ? '⌥' : 'Alt', { className: 'ag-rtl-kbd' }),
+        createEl(doc, 'kbd', null, 'R', { className: 'ag-rtl-kbd' })
+    ]);
+    const closeBtn = createEl(
+        doc,
+        'button',
+        'background:none;border:none;color:inherit;cursor:pointer;font-size:14px;line-height:1;opacity:0.65;padding:2px 4px;',
+        '✕',
+        { id: 'ag-rtl-close-btn', type: 'button' }
+    );
+    const headerRight = createEl(doc, 'div', 'display:flex;align-items:center;gap:6px;', [langBtn, kbdWrap, closeBtn]);
+    panel.appendChild(createEl(doc, 'div', 'display:flex;align-items:center;justify-content:space-between;gap:8px;', [titleSpan, headerRight]));
+    panel.appendChild(createEl(doc, 'div', null, null, { className: 'ag-rtl-sep' }));
+
+    // Master toggle row
+    const masterLabel = createEl(doc, 'span', 'font-weight:600;font-size:12px;');
+    const masterSwitch = createSwitch(doc, 'ag-rtl-master-btn', state.isRTL, () => {
+        state.isRTL = !state.isRTL;
+        save();
+        syncUI();
+    });
+    panel.appendChild(createEl(doc, 'div', 'display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;', [masterLabel, masterSwitch.btn]));
+
+    // Body container (dimmed when RTL disabled, except math shield info)
+    const bodyBox = createEl(doc, 'div', 'display:flex;flex-direction:column;gap:8px;transition:opacity 0.15s ease;', null, { id: 'ag-rtl-body' });
+
+    // Direction Mode segmented buttons
+    const dirLabel = createEl(doc, 'span', 'font-size:11px;opacity:0.85;');
+    const dirButtons = {};
+    const dirSeg = createEl(doc, 'div', null, null, { className: 'ag-rtl-seg' });
+    for (const m of ['smart', 'auto', 'force']) {
+        const b = createEl(doc, 'button', null, m, {
+            id: `ag-rtl-dir-${m}`,
+            type: 'button',
+            className: 'ag-rtl-seg-btn',
+            'data-active': String(state.directionMode === m)
+        });
+        b.addEventListener('click', () => {
+            state.directionMode = m;
+            state.forceRTL = m === 'force';
+            save();
+            syncUI();
+        });
+        dirButtons[m] = b;
+        dirSeg.appendChild(b);
+    }
+    bodyBox.appendChild(createEl(doc, 'div', 'display:flex;align-items:center;justify-content:space-between;gap:6px;', [dirLabel, dirSeg]));
+
+    bodyBox.appendChild(createEl(doc, 'div', null, null, { className: 'ag-rtl-sep' }));
+
+    // Math Shield toggle
+    const mathShieldLabel = createEl(doc, 'span', 'font-size:11px;opacity:0.9;font-weight:500;');
+    const mathShieldSwitch = createSwitch(doc, 'ag-rtl-math-shield-btn', state.mathIsolation, () => {
+        state.mathIsolation = !state.mathIsolation;
+        save();
+        syncUI();
+    });
+    bodyBox.appendChild(createEl(doc, 'div', 'display:flex;align-items:center;justify-content:space-between;gap:6px;', [mathShieldLabel, mathShieldSwitch.btn]));
+
+    // Persian \text{} inside Math toggle
+    const mathPersianLabel = createEl(doc, 'span', 'font-size:11px;opacity:0.85;');
+    const mathPersianSwitch = createSwitch(doc, 'ag-rtl-math-persian-btn', state.mathPersianText, () => {
+        state.mathPersianText = !state.mathPersianText;
+        save();
+        syncUI();
+    });
+    const mathPersianRow = createEl(doc, 'div', 'display:flex;align-items:center;justify-content:space-between;gap:6px;', [mathPersianLabel, mathPersianSwitch.btn]);
+    bodyBox.appendChild(mathPersianRow);
+
+    // Display Equation Alignment segmented buttons
+    const eqAlignLabel = createEl(doc, 'span', 'font-size:11px;opacity:0.85;');
+    const alignButtons = {};
+    const alignSeg = createEl(doc, 'div', null, null, { className: 'ag-rtl-seg' });
+    for (const a of ['left', 'center', 'right']) {
+        const b = createEl(doc, 'button', null, a, {
+            id: `ag-rtl-align-${a}`,
+            type: 'button',
+            className: 'ag-rtl-seg-btn',
+            'data-active': String(state.mathDisplayAlign === a)
+        });
+        b.addEventListener('click', () => {
+            state.mathDisplayAlign = a;
+            save();
+            syncUI();
+        });
+        alignButtons[a] = b;
+        alignSeg.appendChild(b);
+    }
+    const eqAlignRow = createEl(doc, 'div', 'display:flex;align-items:center;justify-content:space-between;gap:6px;', [eqAlignLabel, alignSeg]);
+    bodyBox.appendChild(eqAlignRow);
+
+    // Math Scale slider
+    const mathScaleLabel = createEl(doc, 'span', 'font-size:11px;opacity:0.85;');
+    const mathScaleVal = createEl(doc, 'span', 'font-size:10px;opacity:0.65;min-width:28px;text-align:right;', `${state.mathScale}x`);
+    const mathScaleInput = createEl(doc, 'input', null, null, {
+        id: 'ag-rtl-math-scale-input',
+        type: 'range',
+        min: '0.85',
+        max: '1.30',
+        step: '0.05',
+        value: state.mathScale,
+        className: 'ag-rtl-range'
+    });
+    const mathScaleReset = createEl(doc, 'button', 'background:none;border:none;color:inherit;opacity:0.6;cursor:pointer;font-size:11px;padding:0 2px;', '↺', {
+        id: 'ag-rtl-math-scale-reset',
+        type: 'button',
+        title: 'Reset to 1.0x'
+    });
+    mathScaleInput.addEventListener('input', (e) => {
+        state.mathScale = e.target.value;
+        mathScaleVal.textContent = `${state.mathScale}x`;
+        save();
+        applyAll();
+    });
+    mathScaleReset.addEventListener('click', () => {
+        state.mathScale = DEFAULT_CONFIG.mathScale;
+        mathScaleInput.value = state.mathScale;
+        mathScaleVal.textContent = `${state.mathScale}x`;
+        save();
+        applyAll();
+    });
+    const mathScaleRow = createEl(doc, 'div', 'display:flex;align-items:center;justify-content:space-between;gap:6px;', [
+        mathScaleLabel,
+        createEl(doc, 'div', 'display:flex;align-items:center;gap:4px;', [mathScaleVal, mathScaleInput, mathScaleReset])
+    ]);
+    bodyBox.appendChild(mathScaleRow);
+
+    bodyBox.appendChild(createEl(doc, 'div', null, null, { className: 'ag-rtl-sep' }));
+
+    // Typography inputs
+    const faLabel = createEl(doc, 'span', 'font-size:11px;opacity:0.85;white-space:nowrap;');
+    const faInput = createEl(doc, 'input', null, null, { id: 'ag-rtl-fa-font', type: 'text', value: state.faFont, className: 'ag-rtl-input' });
+    faInput.addEventListener('input', (e) => {
+        state.faFont = sanitizeConfig({ faFont: e.target.value }).faFont;
+        save();
+        applyAll();
+    });
+    bodyBox.appendChild(createEl(doc, 'div', 'display:flex;align-items:center;justify-content:space-between;gap:8px;', [faLabel, faInput]));
+
+    const enLabel = createEl(doc, 'span', 'font-size:11px;opacity:0.85;white-space:nowrap;');
+    const enInput = createEl(doc, 'input', null, null, { id: 'ag-rtl-en-font', type: 'text', value: state.enFont, className: 'ag-rtl-input' });
+    enInput.addEventListener('input', (e) => {
+        state.enFont = sanitizeConfig({ enFont: e.target.value }).enFont;
+        save();
+        applyAll();
+    });
+    bodyBox.appendChild(createEl(doc, 'div', 'display:flex;align-items:center;justify-content:space-between;gap:8px;', [enLabel, enInput]));
+
+    const codeLabel = createEl(doc, 'span', 'font-size:11px;opacity:0.85;white-space:nowrap;');
+    const codeInput = createEl(doc, 'input', null, null, { id: 'ag-rtl-code-font', type: 'text', value: state.codeFont, className: 'ag-rtl-input' });
+    codeInput.addEventListener('input', (e) => {
+        state.codeFont = sanitizeConfig({ codeFont: e.target.value }).codeFont;
+        save();
+        applyAll();
+    });
+    bodyBox.appendChild(createEl(doc, 'div', 'display:flex;align-items:center;justify-content:space-between;gap:8px;', [codeLabel, codeInput]));
+
+    // Line Height slider
+    const lhLabel = createEl(doc, 'span', 'font-size:11px;opacity:0.85;');
+    const lhVal = createEl(doc, 'span', 'font-size:10px;opacity:0.65;min-width:24px;text-align:right;', state.lh);
+    const lhInput = createEl(doc, 'input', null, null, { id: 'ag-rtl-lh-input', type: 'range', min: '1.2', max: '2.5', step: '0.1', value: state.lh, className: 'ag-rtl-range' });
+    const lhReset = createEl(doc, 'button', 'background:none;border:none;color:inherit;opacity:0.6;cursor:pointer;font-size:11px;padding:0 2px;', '↺', { id: 'ag-rtl-lh-reset', type: 'button', title: 'Reset to 1.6' });
+    lhInput.addEventListener('input', (e) => {
+        state.lh = e.target.value;
+        lhVal.textContent = state.lh;
+        save();
+        applyAll();
+    });
+    lhReset.addEventListener('click', () => {
+        state.lh = DEFAULT_CONFIG.lh;
+        lhInput.value = state.lh;
+        lhVal.textContent = state.lh;
+        save();
+        applyAll();
+    });
+    bodyBox.appendChild(createEl(doc, 'div', 'display:flex;align-items:center;justify-content:space-between;gap:6px;', [
+        lhLabel,
+        createEl(doc, 'div', 'display:flex;align-items:center;gap:4px;', [lhVal, lhInput, lhReset])
+    ]));
+
+    // Font Size slider
+    const fsLabel = createEl(doc, 'span', 'font-size:11px;opacity:0.85;');
+    const fsVal = createEl(doc, 'span', 'font-size:10px;opacity:0.65;min-width:28px;text-align:right;', `${state.fs}px`);
+    const fsInput = createEl(doc, 'input', null, null, { id: 'ag-rtl-fs-input', type: 'range', min: '11', max: '24', step: '1', value: state.fs, className: 'ag-rtl-range' });
+    const fsReset = createEl(doc, 'button', 'background:none;border:none;color:inherit;opacity:0.6;cursor:pointer;font-size:11px;padding:0 2px;', '↺', { id: 'ag-rtl-fs-reset', type: 'button', title: 'Reset to 16px' });
+    fsInput.addEventListener('input', (e) => {
+        state.fs = e.target.value;
+        fsVal.textContent = `${state.fs}px`;
+        save();
+        applyAll();
+    });
+    fsReset.addEventListener('click', () => {
+        state.fs = DEFAULT_CONFIG.fs;
+        fsInput.value = state.fs;
+        fsVal.textContent = `${state.fs}px`;
+        save();
+        applyAll();
+    });
+    bodyBox.appendChild(createEl(doc, 'div', 'display:flex;align-items:center;justify-content:space-between;gap:6px;', [
+        fsLabel,
+        createEl(doc, 'div', 'display:flex;align-items:center;gap:4px;', [fsVal, fsInput, fsReset])
+    ]));
+
+    panel.appendChild(bodyBox);
+    panel.appendChild(createEl(doc, 'div', null, null, { className: 'ag-rtl-sep' }));
+
+    // Footer Reset Defaults
+    const resetAllBtn = createEl(
+        doc,
+        'button',
+        'width:100%;padding:5px 8px;border-radius:6px;border:1px solid var(--border,rgba(255,255,255,0.12));background:transparent;color:inherit;font-size:11px;cursor:pointer;opacity:0.8;',
+        '',
+        { id: 'ag-rtl-reset-all', type: 'button' }
+    );
+    resetAllBtn.addEventListener('click', () => {
+        const keepLang = state.uiLang;
+        Object.assign(state, DEFAULT_CONFIG, { uiLang: keepLang });
+        faInput.value = state.faFont;
+        enInput.value = state.enFont;
+        codeInput.value = state.codeFont;
+        lhInput.value = state.lh;
+        lhVal.textContent = state.lh;
+        fsInput.value = state.fs;
+        fsVal.textContent = `${state.fs}px`;
+        mathScaleInput.value = state.mathScale;
+        mathScaleVal.textContent = `${state.mathScale}x`;
+        save();
+        syncUI();
+    });
+    panel.appendChild(resetAllBtn);
+
+    // Trigger elements (Topbar / Statusbar / Floating)
+    let topbarBtn = null;
+    let statusDot = null;
+    let statusbarBtn = null;
+
+    function positionPanel() {
+        if (mode === 'ide' && statusbarBtn && doc.body.contains(statusbarBtn)) {
+            panel.style.top = 'auto';
+            panel.style.bottom = '28px';
+            panel.style.right = '12px';
+            panel.style.left = 'auto';
+            return;
+        }
+        if (topbarBtn && typeof topbarBtn.getBoundingClientRect === 'function' && doc.body.contains(topbarBtn)) {
+            const rect = topbarBtn.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+                panel.style.top = `${Math.round(rect.bottom + 6)}px`;
+                panel.style.right = `${Math.max(8, Math.round((win.innerWidth || 1024) - rect.right))}px`;
+                panel.style.bottom = 'auto';
+                panel.style.left = 'auto';
+                return;
+            }
+        }
+        panel.style.top = '48px';
+        panel.style.right = '14px';
+        panel.style.bottom = 'auto';
+        panel.style.left = 'auto';
+    }
+
+    function togglePanel(show) {
+        const isOpen = panel.style.display === 'block';
+        const next = show !== undefined ? show : !isOpen;
+        if (next) {
+            positionPanel();
+            panel.style.display = 'block';
+        } else {
+            panel.style.display = 'none';
+        }
+    }
+
+    function ensureTriggerMounted() {
+        if (!doc.body || hideTrigger) return;
+        if (!doc.body.contains(panel)) doc.body.appendChild(panel);
+
+        if (mode === 'ide') {
+            const statusTarget =
+                doc.querySelector('.part.statusbar .right-items') ||
+                doc.querySelector('.part.statusbar .items-container.right-items') ||
+                doc.querySelector('[id="workbench.parts.statusbar"] .right-items') ||
+                doc.querySelector('.part.statusbar') ||
+                doc.querySelector('[id="workbench.parts.statusbar"]');
+
+            if (statusTarget) {
+                if (!statusbarBtn) {
+                    statusbarBtn = createEl(
+                        doc,
+                        'a',
+                        'cursor:pointer;padding:0 8px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;height:100%;line-height:22px;user-select:none;text-decoration:none;white-space:nowrap;',
+                        '',
+                        { id: 'ag-rtl-statusbar-btn', className: 'statusbar-item right', href: '#', title: 'Antigravity RTL + Math (Alt+R)' }
+                    );
+                    statusbarBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        togglePanel();
+                    });
+                }
+                if (statusTarget.firstChild !== statusbarBtn) {
+                    statusTarget.prepend(statusbarBtn);
+                }
+                if (topbarBtn && topbarBtn.parentElement) topbarBtn.remove();
+                return;
+            }
+        }
+
+        // App / Remote / IDE-without-statusbar fallback: mount in topbar cluster or floating pill
+        const cluster =
+            doc.querySelector('[data-testid="titlebar-more-actions"]')?.parentElement ||
+            doc.querySelector('[data-testid="install-editor"]')?.parentElement;
+
+        if (!topbarBtn) {
+            const icon = createSvgIcon(doc, '0 0 24 24', 14, 14, [
+                { circle: ['12', '12', '10'] },
+                'M2 12h20',
+                'M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z'
+            ]);
+            statusDot = createEl(
+                doc,
+                'span',
+                `position:absolute;top:-2px;right:-2px;width:6px;height:6px;border-radius:9999px;background:#10b981;display:${state.isRTL ? 'block' : 'none'};`
+            );
+            const iconBox = createEl(doc, 'div', 'position:relative;display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;', [icon, statusDot]);
+            const labelEl = createEl(doc, 'span', 'font-size:12px;font-weight:600;', LABELS[state.uiLang].btnText, { id: 'ag-rtl-topbar-label' });
+            topbarBtn = createEl(
+                doc,
+                'button',
+                'display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:6px;border:1px solid var(--border,rgba(255,255,255,0.16));background:transparent;color:inherit;cursor:pointer;white-space:nowrap;app-region:no-drag;',
+                [iconBox, labelEl],
+                { id: 'ag-rtl-topbar-btn', type: 'button', title: `Antigravity RTL + Math (${isMac ? '⌥R' : 'Alt+R'})` }
+            );
+            topbarBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                togglePanel();
+            });
+        }
+
+        if (cluster) {
+            topbarBtn.style.position = 'relative';
+            topbarBtn.style.top = '';
+            topbarBtn.style.right = '';
+            topbarBtn.style.zIndex = '';
+            if (topbarBtn.parentElement !== cluster) {
+                cluster.appendChild(topbarBtn);
+            }
+        } else if (topbarBtn.parentElement !== doc.body) {
+            topbarBtn.style.position = 'fixed';
+            topbarBtn.style.top = '12px';
+            topbarBtn.style.right = '12px';
+            topbarBtn.style.zIndex = '2147483644';
+            topbarBtn.style.background = 'var(--card, #18181b)';
+            doc.body.appendChild(topbarBtn);
+        }
+    }
+
+    function syncUI() {
+        const L = LABELS[state.uiLang] || LABELS.en;
+        panel.style.direction = state.uiLang === 'fa' ? 'rtl' : 'ltr';
+        panel.style.textAlign = state.uiLang === 'fa' ? 'right' : 'left';
+        titleSpan.textContent = L.title;
+        langBtn.textContent = state.uiLang === 'fa' ? 'EN' : 'فا';
+        masterLabel.textContent = state.isRTL ? L.enabled : L.disabled;
+        masterSwitch.setChecked(state.isRTL);
+
+        dirLabel.textContent = L.dirMode;
+        for (const m of ['smart', 'auto', 'force']) {
+            dirButtons[m].textContent = L[m];
+            dirButtons[m].setAttribute('data-active', String(state.directionMode === m));
+        }
+
+        mathShieldLabel.textContent = L.mathShield;
+        mathShieldSwitch.setChecked(state.mathIsolation);
+        mathPersianLabel.textContent = L.mathPersian;
+        mathPersianSwitch.setChecked(state.mathPersianText);
+        mathPersianRow.style.opacity = state.mathIsolation ? '1' : '0.45';
+        mathPersianRow.style.pointerEvents = state.mathIsolation ? 'auto' : 'none';
+
+        eqAlignLabel.textContent = L.eqAlign;
+        for (const a of ['left', 'center', 'right']) {
+            alignButtons[a].textContent = L[a];
+            alignButtons[a].setAttribute('data-active', String(state.mathDisplayAlign === a));
+        }
+        eqAlignRow.style.opacity = state.mathIsolation ? '1' : '0.45';
+        eqAlignRow.style.pointerEvents = state.mathIsolation ? 'auto' : 'none';
+
+        mathScaleLabel.textContent = L.mathScale;
+        mathScaleRow.style.opacity = state.mathIsolation ? '1' : '0.45';
+        mathScaleRow.style.pointerEvents = state.mathIsolation ? 'auto' : 'none';
+
+        faLabel.textContent = L.faFont;
+        faInput.placeholder = L.phFa;
+        enLabel.textContent = L.enFont;
+        enInput.placeholder = L.phEn;
+        codeLabel.textContent = L.codeFont;
+        codeInput.placeholder = L.phCode;
+        lhLabel.textContent = L.lineHeight;
+        fsLabel.textContent = L.fontSize;
+        resetAllBtn.textContent = L.resetAll;
+
+        bodyBox.style.opacity = state.isRTL ? '1' : '0.45';
+        bodyBox.style.pointerEvents = state.isRTL ? 'auto' : 'none';
+
+        if (statusDot) statusDot.style.display = state.isRTL ? 'block' : 'none';
+        if (statusbarBtn) {
+            statusbarBtn.textContent = state.isRTL ? L.statusOn : L.statusOff;
+            statusbarBtn.style.color = state.isRTL ? '#38bdf8' : 'inherit';
+        }
+
+        applyAll();
+    }
+
+    langBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        state.uiLang = state.uiLang === 'fa' ? 'en' : 'fa';
+        save();
+        syncUI();
+    });
+
+    closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        togglePanel(false);
+    });
+
+    panel.addEventListener('click', (e) => e.stopPropagation());
+
+    doc.addEventListener('click', (e) => {
+        if (panel.style.display === 'block') {
+            if (panel.contains(e.target)) return;
+            if (topbarBtn && topbarBtn.contains(e.target)) return;
+            if (statusbarBtn && statusbarBtn.contains(e.target)) return;
+            togglePanel(false);
+        }
+    });
+
+    doc.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && panel.style.display === 'block') {
+            togglePanel(false);
+        }
+    });
+
+    if (typeof win.addEventListener === 'function') {
+        win.addEventListener('resize', () => {
+            if (panel.style.display === 'block') positionPanel();
+        });
+    }
+
+    bindToggleShortcut(doc, () => {
+        state.isRTL = !state.isRTL;
+        save();
+        syncUI();
+    });
+
+    const stopWatch = watchDom(doc, () => state, () => {
+        applyRtlMathPass(doc, state);
+        ensureTriggerMounted();
+    });
+
+    ensureTriggerMounted();
+    syncUI();
+
+    return {
+        getState: () => ({ ...state }),
+        setRTL(active) {
+            state.isRTL = Boolean(active);
+            save();
+            syncUI();
+        },
+        updateConfig(partial) {
+            Object.assign(state, sanitizeConfig({ ...state, ...partial }));
+            save();
+            syncUI();
+        },
+        refresh: () => applyRtlMathPass(doc, state),
+        destroy: () => {
+            stopWatch();
+            panel.remove();
+            if (topbarBtn) topbarBtn.remove();
+            if (statusbarBtn) statusbarBtn.remove();
+        }
+    };
+}
+
+    root.__agRtlMathLib = {
+        DEFAULT_CONFIG,
+        sanitizeConfig,
+        buildWidgetCSS,
+        buildDynamicCSS,
+        buildDisabledCSS,
+        extractProseText,
+        detectTextDirection,
+        applyRtlMathPass,
+        watchDom,
+        bindToggleShortcut,
+        mountRtlMathController
+    };
+    if (typeof globalThis !== 'undefined' && globalThis !== root && !globalThis.__agRtlMathLib) {
+        globalThis.__agRtlMathLib = root.__agRtlMathLib;
+    }
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+<script>
+(function() {
+  function renderKaTeXIn(root) {
+    if (!window.katex) return;
+    root.querySelectorAll('.math-inline').forEach(function(el) {
+      el.innerHTML = window.katex.renderToString(el.getAttribute('data-tex') || '', { displayMode: false, throwOnError: false });
+    });
+    root.querySelectorAll('.math-display').forEach(function(el) {
+      el.innerHTML = window.katex.renderToString(el.getAttribute('data-tex') || '', { displayMode: true, throwOnError: false });
+    });
+  }
+
+  renderKaTeXIn(document);
+
+  var controller = window.__agRtlMathLib.mountRtlMathController({
+    doc: document,
+    win: window,
+    mode: 'app',
+    initialConfig: {},
+    fontSource: '../assets/Vazirmatn-Variable.woff2'
+  });
+
+  var liveInput = document.getElementById('live-input');
+  var livePreview = document.getElementById('live-preview');
+
+  function renderLive() {
+    if (!window.katex) return;
+    var text = liveInput.value;
+    livePreview.innerHTML = '';
+    var lines = text.split(/\n/);
+    for (var i = 0; i < lines.length; i++) {
+      var p = document.createElement('p');
+      var line = lines[i];
+      var parts = line.split(/(\$\$[\s\S]+?\$\$|\$[^$]+?\$)/g);
+      for (var j = 0; j < parts.length; j++) {
+        var part = parts[j];
+        if (!part) continue;
+        if (part.startsWith('$$') && part.endsWith('$$')) {
+          var spanD = document.createElement('span');
+          spanD.innerHTML = window.katex.renderToString(part.slice(2, -2), { displayMode: true, throwOnError: false });
+          p.appendChild(spanD);
+        } else if (part.startsWith('$') && part.endsWith('$')) {
+          var spanI = document.createElement('span');
+          spanI.innerHTML = window.katex.renderToString(part.slice(1, -1), { displayMode: false, throwOnError: false });
+          p.appendChild(spanI);
+        } else {
+          p.appendChild(document.createTextNode(part));
+        }
+      }
+      livePreview.appendChild(p);
+    }
+    controller.refresh();
+  }
+
+  liveInput.addEventListener('input', renderLive);
+  renderLive();
+})();
+</script>
+</body>
+</html>
