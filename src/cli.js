@@ -12,6 +12,8 @@ import {
     applyPreset
 } from './core/config.js';
 import {
+    CURRENT_HOOK_REVISION,
+    PKG_VERSION,
     readPatchMeta,
     readUserConfig,
     writeUserConfig
@@ -43,8 +45,7 @@ import {
 import { runDoctor } from './patchers/doctor.js';
 import { selfUpdateFromGitHub } from './patchers/self-update.js';
 
-const PKG = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
-const VERSION = PKG.version || '3.0.0';
+const VERSION = PKG_VERSION;
 
 function parseArgs(argv) {
     const flags = {
@@ -178,10 +179,10 @@ function formatPatchBadge(st) {
     if (!st.found && st.installed === undefined) return pc.dim('not detected');
     if (st.installed === false) return pc.dim('not generated');
     if (st.patchState === 'rtl-math') {
-        const rev = st.hookRevision ?? 3;
+        const rev = st.hookRevision ?? CURRENT_HOOK_REVISION;
         const ver = st.appVersion || st.version || '';
         const verTxt = ver ? ` (v${ver})` : '';
-        if (rev < 3) return pc.yellow(`patched v${rev}${verTxt} — upgrade recommended`);
+        if (rev < CURRENT_HOOK_REVISION) return pc.yellow(`patched v${rev}${verTxt} — upgrade recommended`);
         return pc.green(`patched v${rev}${verTxt}`);
     }
     if (st.patchState === 'legacy-rtl') return pc.yellow('legacy antigravity-rtl (run patch to upgrade)');
@@ -339,7 +340,7 @@ async function runInteractiveMenu() {
     printStatus(initial);
 
     const appNeedsUpgrade = initial.targets.app.found &&
-        (initial.targets.app.patchState !== 'rtl-math' || (initial.targets.app.hookRevision ?? 0) < 3);
+        (initial.targets.app.patchState !== 'rtl-math' || (initial.targets.app.hookRevision ?? 0) < CURRENT_HOOK_REVISION);
 
     const { action } = await prompts({
         type: 'select',
@@ -563,7 +564,13 @@ export async function main(argv = process.argv.slice(2)) {
             console.log(JSON.stringify(res, null, 2));
         } else if (!flags.silent) {
             for (const act of res.actions) {
-                const state = act.healed ? pc.green('healed -> v3') : act.upToDate ? pc.cyan('up-to-date') : pc.yellow('skipped (app running or locked)');
+                const state = act.healed
+                    ? pc.green(`healed -> v${CURRENT_HOOK_REVISION}`)
+                    : act.upToDate
+                        ? pc.cyan('up-to-date')
+                        : act.skippedRunning
+                            ? pc.yellow('skipped (app running)')
+                            : pc.red('failed (run --doctor for details)');
                 console.log(`  [${act.target}] ${state}`);
             }
         }
@@ -571,7 +578,7 @@ export async function main(argv = process.argv.slice(2)) {
             const g = installGuard();
             if (!flags.silent && !flags.json) console.log(pc.green(`✔ Auto-Heal Guard enabled: ${g.filePath}`));
         }
-        return 0;
+        return res.ok ? 0 : 1;
     }
 
     if (flags.demo) {

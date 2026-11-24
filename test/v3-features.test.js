@@ -121,7 +121,7 @@ test('app-hook registers listeners BEFORE loadURL and sets hookRevision >= 3', a
 
         const st = getAppStatus(asarPath);
         assert.equal(st.patchState, 'rtl-math');
-        assert.equal(st.hookRevision, 3);
+        assert.equal(st.hookRevision, 4);
         assert.equal(st.appVersion, '2.99.0');
 
         const verifyDir = path.join(tmp, 'verify');
@@ -225,12 +225,14 @@ test('Auto-Heal Startup Guard works cross-platform in temp dirs and ensurePatche
         fs.writeFileSync(path.join(ideDir, 'out', 'main.js'), 'console.log("ide");\n');
 
         const first = await ensurePatched({ appPath: asarPath, ideDir, checkProcess: false, silent: true });
+        assert.equal(first.ok, true);
         assert.equal(first.actions.length, 2);
         assert.equal(first.actions.every(a => a.healed === true), true);
-        assert.equal(getAppStatus(asarPath).hookRevision, 3);
-        assert.equal(getIdeStatus(ideDir).hookRevision, 3);
+        assert.equal(getAppStatus(asarPath).hookRevision, 4);
+        assert.equal(getIdeStatus(ideDir).hookRevision, 4);
 
         const second = await ensurePatched({ appPath: asarPath, ideDir, checkProcess: false, silent: true });
+        assert.equal(second.ok, true);
         assert.equal(second.actions.every(a => a.healed === false && a.upToDate === true), true);
     } finally {
         fs.rmSync(tmp, { recursive: true, force: true });
@@ -255,7 +257,7 @@ test('runDoctor and installBrowserExtension v3 (including PNG icons) report heal
         installBrowserExtension({ destDir: browserDir, openFolder: false, silent: true });
         assert.equal(fs.existsSync(path.join(browserDir, 'icons', 'icon-48.png')), true);
         assert.equal(fs.existsSync(path.join(browserDir, 'icons', 'icon-128.png')), true);
-        assert.equal(getBrowserStatus(browserDir).version, '3.0.0');
+        assert.equal(getBrowserStatus(browserDir).version, '3.1.0');
 
         const customGuardDir = path.join(tmp, 'guard');
         installGuard({ customDir: customGuardDir, homeDir });
@@ -341,11 +343,11 @@ test('CLI supports --version --json, --status --json, and --doctor --json cleanl
         const env = { ...process.env, HOME: tmpHome, USERPROFILE: tmpHome };
         const verOut = execFileSync(process.execPath, [path.join(REPO_ROOT, 'src', 'cli.js'), '--version', '--json'], { encoding: 'utf8', env });
         const verJson = JSON.parse(verOut);
-        assert.equal(verJson.version, '3.0.0');
+        assert.equal(verJson.version, '3.1.0');
 
         const statusOut = execFileSync(process.execPath, [path.join(REPO_ROOT, 'src', 'cli.js'), '--status', '--json'], { encoding: 'utf8', env });
         const statusJson = JSON.parse(statusOut);
-        assert.equal(statusJson.version, '3.0.0');
+        assert.equal(statusJson.version, '3.1.0');
         assert.ok(statusJson.targets && statusJson.guard && statusJson.config);
 
         const docOut = execFileSync(process.execPath, [path.join(REPO_ROOT, 'src', 'cli.js'), '--doctor', '--json'], { encoding: 'utf8', env });
@@ -354,5 +356,62 @@ test('CLI supports --version --json, --status --json, and --doctor --json cleanl
         assert.ok(Array.isArray(docJson.checks) && docJson.checks.length >= 6);
     } finally {
         fs.rmSync(tmpHome, { recursive: true, force: true });
+    }
+});
+
+test('ensurePatched upgrades v3.0.0 hook to v4 and reports accurate error/failure on missing utils or anchor', async () => {
+    const tmp = mkTempDir('ag-rtl-upgrade-err-');
+    try {
+        // 1. Upgrade a simulated v3.0.0-patched ASAR to hookRevision 4
+        const v3Src = path.join(tmp, 'v3-src');
+        fs.mkdirSync(path.join(v3Src, 'dist'), { recursive: true });
+        fs.writeFileSync(path.join(v3Src, 'package.json'), JSON.stringify({ name: 'antigravity', version: '2.30.0' }));
+        fs.writeFileSync(
+            path.join(v3Src, 'dist', 'utils.js'),
+            '/* ANTIGRAVITY RTL MATH PATCH */\nconst __agRtlAppHooked = true;\nvoid win.loadURL(url);\n/* END ANTIGRAVITY RTL MATH PATCH */\n'
+        );
+        const v3Asar = path.join(tmp, 'v3.asar');
+        await asar.createPackage(v3Src, v3Asar);
+        assert.equal(getAppStatus(v3Asar).hookRevision, 3);
+
+        const upgraded = await ensurePatched({ appPath: v3Asar, ideDir: null, checkProcess: false, silent: true });
+        assert.equal(upgraded.ok, true);
+        assert.equal(upgraded.actions[0].healed, true);
+        assert.equal(getAppStatus(v3Asar).hookRevision, 4);
+
+        // 2. Missing dist/utils.js vs missing anchor produce distinct errors and ok: false
+        const noUtilsSrc = path.join(tmp, 'no-utils');
+        fs.mkdirSync(noUtilsSrc, { recursive: true });
+        fs.writeFileSync(path.join(noUtilsSrc, 'package.json'), JSON.stringify({ name: 'antigravity', version: '9.9.9' }));
+        const noUtilsAsar = path.join(tmp, 'no-utils.asar');
+        await asar.createPackage(noUtilsSrc, noUtilsAsar);
+
+        const noAnchorSrc = path.join(tmp, 'no-anchor');
+        fs.mkdirSync(path.join(noAnchorSrc, 'dist'), { recursive: true });
+        fs.writeFileSync(path.join(noAnchorSrc, 'package.json'), JSON.stringify({ name: 'antigravity', version: '9.9.9' }));
+        fs.writeFileSync(path.join(noAnchorSrc, 'dist', 'utils.js'), 'function other() {}\n');
+        const noAnchorAsar = path.join(tmp, 'no-anchor.asar');
+        await asar.createPackage(noAnchorSrc, noAnchorAsar);
+
+        const origErr = console.error;
+        const captured = [];
+        console.error = (...args) => captured.push(args.join(' '));
+        try {
+            const failMissingUtils = await ensurePatched({ appPath: noUtilsAsar, ideDir: null, checkProcess: false, silent: true });
+            assert.equal(failMissingUtils.ok, false);
+            assert.equal(failMissingUtils.actions[0].failed, true);
+
+            const failMissingAnchor = await ensurePatched({ appPath: noAnchorAsar, ideDir: null, checkProcess: false, silent: true });
+            assert.equal(failMissingAnchor.ok, false);
+            assert.equal(failMissingAnchor.actions[0].failed, true);
+        } finally {
+            console.error = origErr;
+        }
+
+        const errText = captured.join('\n');
+        assert.match(errText, /dist\/utils\.js not found in ASAR/);
+        assert.match(errText, /Supported window load anchor not found in dist\/utils\.js \(Antigravity v9\.9\.9\)/);
+    } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
     }
 });

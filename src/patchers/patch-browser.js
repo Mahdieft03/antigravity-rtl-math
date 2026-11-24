@@ -8,7 +8,7 @@ import { fileURLToPath } from 'url';
 import { exec } from 'child_process';
 import picocolors from 'picocolors';
 import { buildRemoteExtensionScript } from '../core/client-bundle.js';
-import { isTempPath, updatePatchMeta } from '../core/meta.js';
+import { PKG_VERSION, isTempPath, updatePatchMeta } from '../core/meta.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -56,7 +56,7 @@ export function installBrowserExtension({ openFolder = true, destDir = getBrowse
     }
 
     try {
-        updatePatchMeta('browser', { path: destDir, patchVersion: '3.0.0' });
+        updatePatchMeta('browser', { path: destDir, patchVersion: PKG_VERSION });
     } catch (_) {}
 
     if (!silent) {

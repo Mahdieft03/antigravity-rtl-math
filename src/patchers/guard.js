@@ -6,10 +6,12 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { readPatchMeta, updatePatchMeta } from '../core/meta.js';
+import { CURRENT_HOOK_REVISION, PKG_VERSION, readPatchMeta, updatePatchMeta } from '../core/meta.js';
 import { detectAppAsarPath, getAppStatus, patchApp } from './patch-app.js';
 import { detectIdeAppPath, getIdeStatus, patchIde } from './patch-ide.js';
 import { getBrowserStatus, installBrowserExtension } from './patch-browser.js';
+import { checkRunningAntigravity } from './process-check.js';
+import { compareSemver } from './self-update.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -116,15 +118,19 @@ export async function ensurePatched({
     includeBrowser = false,
     checkProcess = true,
     silent = true,
-    minHookRevision = 3
+    minHookRevision = CURRENT_HOOK_REVISION
 } = {}) {
     const actions = [];
 
     if (appPath) {
         const st = getAppStatus(appPath);
         if (st.found && (st.patchState !== 'rtl-math' || st.hookRevision < minHookRevision)) {
-            const ok = await patchApp(appPath, { exitOnError: false, checkProcess, silent });
-            actions.push({ target: 'app', path: appPath, previousState: st.patchState, hookRevision: st.hookRevision, healed: ok });
+            if (checkProcess && checkRunningAntigravity('app').running) {
+                actions.push({ target: 'app', path: appPath, previousState: st.patchState, hookRevision: st.hookRevision, healed: false, skippedRunning: true });
+            } else {
+                const ok = await patchApp(appPath, { exitOnError: false, checkProcess: false, silent });
+                actions.push({ target: 'app', path: appPath, previousState: st.patchState, hookRevision: st.hookRevision, healed: ok, failed: !ok });
+            }
         } else if (st.found) {
             actions.push({ target: 'app', path: appPath, previousState: st.patchState, hookRevision: st.hookRevision, healed: false, upToDate: true });
         }
@@ -133,8 +139,12 @@ export async function ensurePatched({
     if (ideDir) {
         const st = getIdeStatus(ideDir);
         if (st.found && (st.patchState !== 'rtl-math' || st.hookRevision < minHookRevision)) {
-            const ok = await patchIde(ideDir, { exitOnError: false, checkProcess, silent });
-            actions.push({ target: 'ide', path: ideDir, previousState: st.patchState, hookRevision: st.hookRevision, healed: ok });
+            if (checkProcess && checkRunningAntigravity('ide').running) {
+                actions.push({ target: 'ide', path: ideDir, previousState: st.patchState, hookRevision: st.hookRevision, healed: false, skippedRunning: true });
+            } else {
+                const ok = await patchIde(ideDir, { exitOnError: false, checkProcess: false, silent });
+                actions.push({ target: 'ide', path: ideDir, previousState: st.patchState, hookRevision: st.hookRevision, healed: ok, failed: !ok });
+            }
         } else if (st.found) {
             actions.push({ target: 'ide', path: ideDir, previousState: st.patchState, hookRevision: st.hookRevision, healed: false, upToDate: true });
         }
@@ -142,7 +152,7 @@ export async function ensurePatched({
 
     if (includeBrowser || getBrowserStatus().installed) {
         const bst = getBrowserStatus();
-        if (!bst.installed || bst.patchState !== 'rtl-math' || bst.version !== '3.0.0') {
+        if (!bst.installed || bst.patchState !== 'rtl-math' || compareSemver(bst.version, PKG_VERSION) < 0) {
             installBrowserExtension({ openFolder: false, silent });
             actions.push({ target: 'browser', path: bst.dir, previousState: bst.patchState, healed: true });
         } else {
@@ -151,6 +161,7 @@ export async function ensurePatched({
     }
 
     return {
+        ok: !actions.some(a => a.failed),
         checkedAt: new Date().toISOString(),
         meta: readPatchMeta(),
         actions

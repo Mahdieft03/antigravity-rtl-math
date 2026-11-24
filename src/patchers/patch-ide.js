@@ -9,7 +9,7 @@ import picocolors from 'picocolors';
 import ora from 'ora';
 import prompts from 'prompts';
 import { buildElectronClientScript } from '../core/client-bundle.js';
-import { isTempPath, updatePatchMeta } from '../core/meta.js';
+import { CURRENT_HOOK_REVISION, PKG_VERSION, isTempPath, updatePatchMeta } from '../core/meta.js';
 import { checkRunningAntigravity } from './process-check.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -120,7 +120,10 @@ export function getIdeStatus(appDir = detectIdeAppPath()) {
             const hookPath = path.join(outDir, 'antigravity-rtl-main.js');
             if (fs.existsSync(clientPath) && fs.readFileSync(clientPath, 'utf8').includes('__agRtlMathLib')) {
                 patchState = 'rtl-math';
-                hookRevision = fs.existsSync(hookPath) && fs.readFileSync(hookPath, 'utf8').includes('attachedWc') ? 3 : 2;
+                const hookText = fs.existsSync(hookPath) ? fs.readFileSync(hookPath, 'utf8') : '';
+                hookRevision = hookText.includes('__agRtlHookRev = 4')
+                    ? 4
+                    : (hookText.includes('attachedWc') ? 3 : 2);
             } else {
                 patchState = 'legacy-rtl';
                 hookRevision = 1;
@@ -275,7 +278,7 @@ export async function patchIde(appDir, { exitOnError = true, checkProcess = true
         }
 
         try {
-            updatePatchMeta('ide', { path: appDir, patchVersion: '3.0.0', hookRevision: 3 });
+            updatePatchMeta('ide', { path: appDir, patchVersion: PKG_VERSION, hookRevision: CURRENT_HOOK_REVISION });
         } catch (_) {}
 
         spinner.succeed('Successfully patched Antigravity IDE with RTL + Math Isolation!');

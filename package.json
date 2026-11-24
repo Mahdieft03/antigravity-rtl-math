@@ -1,6 +1,6 @@
 {
   "name": "antigravity-rtl-math",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Smart RTL & Math Isolation patcher for Antigravity, Antigravity IDE, and Remote Control — keeps Persian/Arabic RTL clean while preserving KaTeX, MathJax, MathML, code, and diagrams.",
   "type": "module",
   "main": "./src/cli.js",

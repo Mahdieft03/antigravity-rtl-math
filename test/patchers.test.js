@@ -194,3 +194,132 @@ test('buildDemoHtml produces valid offline playground with screenshot formulas',
     assert.ok(html.includes('اتساع (کش آمدن) زمان'));
     assert.ok(html.includes('__agRtlMathLib'));
 });
+
+test('patchApp supports Antigravity 2.35+ loadHubWindowUrl, lossless restore, and isolates browser localhost views', async () => {
+    const root = tmp();
+    try {
+        const src = path.join(root, 'src');
+        fs.mkdirSync(path.join(src, 'dist'), { recursive: true });
+        const original235 = [
+            'function getHubWebContents(win) { return win && win._hubWc; }',
+            'function getHubWindows() { return globalThis.__testHubWins || []; }',
+            'function resolveActiveLsBaseUrl() { return "https://127.0.0.1:54321"; }',
+            'function loadHubWindowUrl(win, url, opts) { return Promise.resolve([win, url, opts]); }',
+            'function createWindow(win, url, options) {',
+            '    const hubContents = getHubWebContents(win);',
+            '    const skipBootstrapMint = Boolean(options?.partition);',
+            '    void loadHubWindowUrl(win, url, { skipBootstrapMint });',
+            '    return win;',
+            '}',
+            'module.exports = { createWindow, getHubWebContents };'
+        ].join('\n');
+        fs.writeFileSync(path.join(src, 'package.json'), JSON.stringify({ name: 'antigravity', version: '2.35.0' }));
+        fs.writeFileSync(path.join(src, 'dist', 'utils.js'), original235);
+        const asarPath = path.join(root, 'app.asar');
+        await asar.createPackage(src, asarPath);
+
+        assert.equal(await patchApp(asarPath, { exitOnError: false, checkProcess: false, silent: true }), true);
+        const st = getAppStatus(asarPath);
+        assert.equal(st.patchState, 'rtl-math');
+        assert.equal(st.hookRevision, 4);
+        assert.equal(st.backupClean, true);
+
+        // Idempotent re-patch with missing .bak must still rebuild a byte-identical clean backup
+        fs.unlinkSync(asarPath + '.bak');
+        assert.equal(await patchApp(asarPath, { exitOnError: false, checkProcess: false, silent: true }), true);
+        assert.equal(readUtils(asarPath).split('/* ANTIGRAVITY RTL MATH PATCH */').length - 1, 1);
+        assert.equal(readUtils(asarPath + '.bak'), original235);
+
+        // Execute patched utils.js in VM and verify Hub injection + built-in browser localhost isolation
+        const distExtract = path.join(root, 'extracted');
+        asar.extractAll(asarPath, distExtract);
+
+        const appListeners = {};
+        const fakeElectron = {
+            app: {
+                on: (ev, fn) => { appListeners[ev] = fn; }
+            }
+        };
+        const nodeReq = createRequire(import.meta.url);
+        const fakeRequire = id => (id === 'electron' ? fakeElectron : nodeReq(id));
+
+        const hubHandlers = {};
+        const hubExecs = [];
+        const subframeExecs = [];
+        const hubWc = {
+            on: (ev, fn) => { hubHandlers[ev] = fn; },
+            getURL: () => 'https://127.0.0.1:54321/#t=tok',
+            getType: () => 'window',
+            isDestroyed: () => false,
+            mainFrame: null,
+            executeJavaScript: (code) => {
+                hubExecs.push(code);
+                return Promise.resolve();
+            }
+        };
+        const hubSubframe = {
+            url: 'https://127.0.0.1:54321/worker-frame.html',
+            executeJavaScript: (code) => {
+                subframeExecs.push(code);
+                return Promise.resolve();
+            }
+        };
+        const devServerSubframe = {
+            url: 'http://localhost:3000/preview',
+            executeJavaScript: (code) => {
+                subframeExecs.push(code);
+                return Promise.resolve();
+            }
+        };
+        hubWc.mainFrame = {
+            url: 'https://127.0.0.1:54321/',
+            framesInSubtree: []
+        };
+        hubWc.mainFrame.framesInSubtree = [hubWc.mainFrame, hubSubframe, devServerSubframe];
+
+        const win = { _hubWc: hubWc };
+        globalThis.__testHubWins = [win];
+        delete globalThis.__agRtlAppHooked;
+        delete globalThis.__agRtlHubOrigins;
+
+        const mod = { exports: {} };
+        new Function('module', 'require', '__dirname', readUtils(asarPath))(mod, fakeRequire, path.join(distExtract, 'dist'));
+        mod.exports.createWindow(win, 'https://127.0.0.1:54321/', {});
+
+        assert.ok(hubHandlers['dom-ready'], 'primary Hub WebContents must receive dom-ready hook');
+        hubHandlers['dom-ready']();
+        hubHandlers['did-frame-finish-load']();
+
+        assert.equal(hubExecs.length, 1);
+        assert.doesNotThrow(() => new vm.Script(hubExecs[0]));
+        assert.equal(subframeExecs.length, 1, 'only Hub-origin subframe should be injected, not localhost:3000');
+
+        // Simulate built-in browser WebContentsView navigating to user's dev server at localhost:3000
+        const browserTabHandlers = {};
+        const browserTabExecs = [];
+        const browserTabWc = {
+            on: (ev, fn) => { browserTabHandlers[ev] = fn; },
+            getURL: () => 'http://localhost:3000/',
+            getType: () => 'window',
+            isDestroyed: () => false,
+            mainFrame: { framesInSubtree: [] },
+            executeJavaScript: (code) => {
+                browserTabExecs.push(code);
+                return Promise.resolve();
+            }
+        };
+        appListeners['web-contents-created']({}, browserTabWc);
+        browserTabHandlers['dom-ready']();
+        browserTabHandlers['did-finish-load']();
+        assert.equal(browserTabExecs.length, 0, 'built-in browser tab on localhost:3000 must NOT be injected');
+
+        // Clean restore returns byte-identical original 2.35+ dist/utils.js
+        assert.equal(await restoreApp(asarPath, { exitOnError: false, checkProcess: false }), true);
+        assert.equal(readUtils(asarPath), original235);
+    } finally {
+        delete globalThis.__testHubWins;
+        delete globalThis.__agRtlAppHooked;
+        delete globalThis.__agRtlHubOrigins;
+        fs.rmSync(root, { recursive: true, force: true });
+    }
+});

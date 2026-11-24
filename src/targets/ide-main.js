@@ -2,6 +2,7 @@
  * Antigravity RTL Math Main-Process Injection Hook for Antigravity IDE (VS Code Edition).
  * Copied into `resources/app/out/antigravity-rtl-main.js` and imported at top of `out/main.js`.
  */
+// __agRtlHookRev = 4
 import { app } from 'electron';
 import fs from 'fs';
 import path from 'path';

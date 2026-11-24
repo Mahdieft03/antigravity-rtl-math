@@ -6,11 +6,12 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { getConfigFilePath, readPatchMeta, readUserConfig } from '../core/meta.js';
+import { CURRENT_HOOK_REVISION, PKG_VERSION, getConfigFilePath, readPatchMeta, readUserConfig } from '../core/meta.js';
 import { detectAppAsarPath, getAppStatus } from './patch-app.js';
 import { detectIdeAppPath, getIdeStatus } from './patch-ide.js';
 import { getBrowserExtensionDir, getBrowserStatus } from './patch-browser.js';
 import { getGuardStatus } from './guard.js';
+import { compareSemver } from './self-update.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -67,10 +68,10 @@ export function runDoctor({
         const writeOk = (() => {
             try { fs.accessSync(path.dirname(appSt.path), fs.constants.W_OK); return true; } catch (_) { return false; }
         })();
-        if (appSt.patchState === 'rtl-math' && appSt.hookRevision >= 3 && appSt.backupClean) {
-            add('app', writeOk ? 'pass' : 'warn', 'Antigravity Standalone App', `Patched v3 (app v${appSt.appVersion || '?'}) + clean backup` + (writeOk ? '' : ' — folder requires elevation'));
-        } else if (appSt.patchState === 'rtl-math' && appSt.hookRevision < 3) {
-            add('app', 'warn', 'Antigravity Standalone App', `Older v${appSt.hookRevision} hook detected (missing multi-window & safe-zone upgrades)`, 'Close Antigravity and run with --app to upgrade to v3.');
+        if (appSt.patchState === 'rtl-math' && appSt.hookRevision >= CURRENT_HOOK_REVISION && appSt.backupClean) {
+            add('app', writeOk ? 'pass' : 'warn', 'Antigravity Standalone App', `Patched v${appSt.hookRevision} (app v${appSt.appVersion || '?'}) + clean backup` + (writeOk ? '' : ' — folder requires elevation'));
+        } else if (appSt.patchState === 'rtl-math' && appSt.hookRevision < CURRENT_HOOK_REVISION) {
+            add('app', 'warn', 'Antigravity Standalone App', `Older v${appSt.hookRevision} hook detected (missing multi-window, safe-zone, or v${CURRENT_HOOK_REVISION} Hub upgrades)`, `Close Antigravity and run with --app (or --ensure) to upgrade to v${CURRENT_HOOK_REVISION}.`);
         } else if (appSt.patchState === 'legacy-rtl') {
             add('app', 'warn', 'Antigravity Standalone App', 'Legacy antigravity-rtl patch detected (lacks Math Isolation)', 'Close Antigravity and run patcher to migrate.');
         } else if (appSt.patchState === 'clean') {
@@ -85,8 +86,8 @@ export function runDoctor({
     const ideSt = getIdeStatus(ideDir);
     if (!ideSt.found) {
         add('ide', 'pass', 'Antigravity IDE', 'Not installed (skipped)');
-    } else if (ideSt.patchState === 'rtl-math' && ideSt.hookRevision >= 3) {
-        add('ide', 'pass', 'Antigravity IDE', 'Patched v3 + clean backup');
+    } else if (ideSt.patchState === 'rtl-math' && ideSt.hookRevision >= CURRENT_HOOK_REVISION) {
+        add('ide', 'pass', 'Antigravity IDE', `Patched v${ideSt.hookRevision} + clean backup`);
     } else {
         add('ide', 'warn', 'Antigravity IDE', `State: ${ideSt.patchState} (rev ${ideSt.hookRevision})`, 'Close Antigravity IDE and run with --ide.');
     }
@@ -95,7 +96,7 @@ export function runDoctor({
     const brSt = getBrowserStatus(browserDir);
     if (!brSt.installed) {
         add('browser', 'pass', 'Remote Control Extension', 'Not installed (optional — run --browser to generate)');
-    } else if (brSt.patchState === 'rtl-math' && brSt.version === '3.0.0') {
+    } else if (brSt.patchState === 'rtl-math' && brSt.version && compareSemver(brSt.version, PKG_VERSION) >= 0) {
         add('browser', 'pass', 'Remote Control Extension', `Ready v${brSt.version} at ${brSt.dir}`);
     } else {
         add('browser', 'warn', 'Remote Control Extension', `Older version (${brSt.version || 'legacy'})`, 'Run --browser to refresh extension files.');

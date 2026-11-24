@@ -5,11 +5,11 @@
 **Production-grade Right-to-Left (RTL) typography for Persian, Arabic, and Hebrew in Antigravity — with zero-glitch KaTeX, MathJax, and MathML formula isolation and post-update Auto-Heal.**
 
 [![CI](https://github.com/Mahdieft03/antigravity-rtl-math/actions/workflows/ci.yml/badge.svg)](https://github.com/Mahdieft03/antigravity-rtl-math/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/Version-3.0.0-0ea5e9.svg)](CHANGELOG.md)
+[![Release](https://img.shields.io/badge/Version-3.1.0-0ea5e9.svg)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js >= 20](https://img.shields.io/badge/Node.js-%3E%3D20-339933.svg)](https://nodejs.org/)
 
-[One-Line Install](#quick-install-1-command-from-github) · [What's New in v3](#whats-new-in-v300) · [Why Math Breaks](#why-math-formulas-break-in-rtl-and-how-this-project-fixes-it) · [CLI & Guard](#cli-commands) · [Credits](#credits--inspiration) · [فارسی](#راهنمای-فارسی)
+[One-Line Install](#quick-install-1-command-from-github) · [What's New in v3.1](#whats-new-in-v310) · [Why Math Breaks](#why-math-formulas-break-in-rtl-and-how-this-project-fixes-it) · [CLI & Guard](#cli-commands) · [Credits](#credits--inspiration) · [فارسی](#راهنمای-فارسی)
 
 </div>
 
@@ -45,6 +45,12 @@ antigravity-rtl-math --update   # Self-update directly from GitHub
 ```
 
 ---
+
+## What's New in v3.1.0
+
+- **Antigravity 2.35+ Hub & `WebContentsView` Compatibility (`v4` Hook)**: Supports `loadHubWindowUrl(win, url, { skipBootstrapMint })` and `BaseWindow`/`WebContentsView` windows with lossless anchor preservation during upgrades and restores.
+- **Built-in Browser Localhost Isolation**: Keeps user dev servers (e.g. `http://localhost:3000`) inside Antigravity's built-in browser untouched while injecting Hub frames cleanly.
+- **Accurate `--ensure` & Installer Diagnostics**: Distinct reporting for missing ASAR files, unrecognized anchors, running-process skips, and failed heals.
 
 ## What's New in v3.0.0
 
@@ -123,6 +129,12 @@ irm https://raw.githubusercontent.com/Mahdieft03/antigravity-rtl-math/main/insta
 ```powershell
 antigravity-rtl-math --ensure
 ```
+
+### قابلیت‌های نسخه ۳.۱.۰ (v3.1.0)
+
+- **پشتیبانی کامل از نسخه‌های جدید Antigravity (۲.۳۵ و بالاتر — هوک `v4`)**: سازگار با معماری جدید `loadHubWindowUrl` و `BaseWindow` / `WebContentsView` همراه با بازگردانی دقیق در `--restore`.
+- **ایزوله‌سازی تب‌های مرورگر داخلی**: پیش‌نمایش پروژه‌های لوکال شما (مثل `http://localhost:3000`) در مرورگر داخلی برنامه دستکاری نمی‌شوند.
+- **گزارش دقیق خطاها در نصب و `--ensure`**: تفکیک خطای نسخه پشتیبانی‌نشده از خطای باز بودن برنامه.
 
 ### قابلیت‌های نسخه ۳.۰ (v3.0.0)
 

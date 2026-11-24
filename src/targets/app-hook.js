@@ -1,10 +1,13 @@
 /**
- * Template snippet injected into Antigravity Standalone App's `dist/utils.js` around `void win.loadURL(url);`.
- * Hooks BOTH the specific window (`before` loadURL to eliminate startup race) and process-wide `web-contents-created`.
+ * Template snippet injected into Antigravity Standalone App's `dist/utils.js` around the Hub window load call.
+ * Supports both legacy `void win.loadURL(url);` and Antigravity 2.35+ `void loadHubWindowUrl(win, url, ...);`.
+ * Hooks BOTH the primary Hub WebContents (before load to eliminate startup race) and process-wide `web-contents-created`,
+ * while isolating built-in browser localhost tabs from Hub RTL injection.
  */
 
-export function renderAppHookSnippet(clientScriptTemplate) {
+export function renderAppHookSnippet(clientScriptTemplate, anchorStatement = 'void win.loadURL(url);') {
     return `/* ANTIGRAVITY RTL MATH PATCH */
+    globalThis.__agRtlHookRev = 4;
     const __agRtlPath = require('path');
     const __agRtlFs = require('fs');
     const __agRtlOs = require('os');
@@ -55,7 +58,42 @@ export function renderAppHookSnippet(clientScriptTemplate) {
         return __agRtlSanitize({});
     };
     const __agRtlTemplate = ${JSON.stringify(clientScriptTemplate)};
-    const __agRtlIsLocalUrl = (u) => Boolean(u && /^https?:\\/\\/(127\\.0\\.0\\.1|localhost):\\d+/i.test(u));
+    const __agRtlIsLocalUrl = (u) => Boolean(u && /^https?:\\/\\/(?:127\\.0\\.0\\.1|localhost|\\[::1\\]):\\d+/i.test(u));
+    const __agRtlHubOrigins = globalThis.__agRtlHubOrigins || (globalThis.__agRtlHubOrigins = new Set());
+    const __agRtlRememberOrigin = (u) => {
+        try {
+            if (__agRtlIsLocalUrl(u)) __agRtlHubOrigins.add(new URL(u).origin);
+        } catch (_) {}
+    };
+    const __agRtlIsAllowedTarget = (u, isPrimaryWin, wc) => {
+        if (!__agRtlIsLocalUrl(u)) return false;
+        if (isPrimaryWin) {
+            __agRtlRememberOrigin(u);
+            return true;
+        }
+        try {
+            if (typeof resolveActiveLsBaseUrl === 'function') {
+                const lsBase = resolveActiveLsBaseUrl();
+                if (lsBase) __agRtlRememberOrigin(lsBase);
+            }
+        } catch (_) {}
+        try {
+            if (
+                wc &&
+                typeof getHubWindows === 'function' &&
+                typeof getHubWebContents === 'function' &&
+                getHubWindows().some((w) => getHubWebContents(w) === wc)
+            ) {
+                __agRtlRememberOrigin(u);
+                return true;
+            }
+        } catch (_) {}
+        try {
+            return __agRtlHubOrigins.size > 0 && __agRtlHubOrigins.has(new URL(u).origin);
+        } catch (_) {
+            return false;
+        }
+    };
     const __agRtlGetFontB64 = () => {
         if (typeof globalThis.__agRtlCachedFontB64 !== 'string') {
             const fontPath = __agRtlPath.join(__dirname, 'Vazirmatn-Variable.woff2');
@@ -105,8 +143,8 @@ export function renderAppHookSnippet(clientScriptTemplate) {
             try {
                 if (wc.isDestroyed?.()) return;
                 const u = typeof wc.getURL === 'function' ? wc.getURL() : '';
-                if (!__agRtlIsLocalUrl(u)) return;
-                const hideBtn = isPrimaryWin ? false : (typeof wc.getType === 'function' && wc.getType() === 'webview');
+                if (!__agRtlIsAllowedTarget(u, isPrimaryWin, wc)) return;
+                const hideBtn = !isPrimaryWin;
                 Promise.resolve(wc.executeJavaScript(__agRtlBuildForFrame(hideBtn))).catch(__agRtlReportErr);
             } catch (e) {
                 __agRtlReportErr(e);
@@ -116,12 +154,12 @@ export function renderAppHookSnippet(clientScriptTemplate) {
             try {
                 if (wc.isDestroyed?.()) return;
                 const u = typeof wc.getURL === 'function' ? wc.getURL() : '';
-                if (!__agRtlIsLocalUrl(u)) return;
+                if (!__agRtlIsAllowedTarget(u, isPrimaryWin, wc)) return;
                 const frames = wc.mainFrame && wc.mainFrame.framesInSubtree;
                 if (!Array.isArray(frames)) return;
                 const code = __agRtlBuildForFrame(true);
                 for (const f of frames) {
-                    if (f !== wc.mainFrame && __agRtlIsLocalUrl(f.url)) {
+                    if (f !== wc.mainFrame && __agRtlIsAllowedTarget(f.url, false, null)) {
                         Promise.resolve(f.executeJavaScript(code)).catch(__agRtlReportErr);
                     }
                 }
@@ -143,7 +181,11 @@ export function renderAppHookSnippet(clientScriptTemplate) {
             });
         }
     } catch (_) {}
-    __agRtlAttachWc(win && win.webContents, true);
-    void win.loadURL(url);
+    if (typeof url === 'string') __agRtlRememberOrigin(url);
+    const __agRtlPrimaryWc = (typeof getHubWebContents === 'function' && getHubWebContents(win)) ||
+        (typeof hubContents === 'object' && hubContents) ||
+        (win && win.webContents);
+    __agRtlAttachWc(__agRtlPrimaryWc, true);
+    /* AG_RTL_ORIG_ANCHOR_START */${anchorStatement}/* AG_RTL_ORIG_ANCHOR_END */
 /* END ANTIGRAVITY RTL MATH PATCH */`;
 }

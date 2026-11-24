@@ -3,6 +3,17 @@
 All notable changes to **Antigravity RTL + Math** are documented here.
 Inspired by [mmnaderi/antigravity-rtl](https://github.com/mmnaderi/antigravity-rtl).
 
+## [3.1.0] - 2026-11-24
+
+### Fixed
+- **Antigravity 2.35+ Hub Loader & `BaseWindow`/`WebContentsView` Support (`v4` Hook)**: Added multi-pattern anchor detection supporting `void loadHubWindowUrl(win, url, { skipBootstrapMint });` alongside legacy `void win.loadURL(url);`, and resolved the primary Hub `WebContents` via `getHubWebContents(win)` / `hubContents` / `win.webContents`.
+- **Lossless Anchor Preservation & Clean Restore**: Wrapped the original load call in `AG_RTL_ORIG_ANCHOR_START` / `AG_RTL_ORIG_ANCHOR_END` markers so idempotent re-patching, v3.0.0 → v3.1.0 upgrades, and `--restore` preserve the exact original statement.
+- **Built-in Browser `localhost` Isolation**: Restricted secondary `web-contents-created` and subframe injections to remembered Hub/Language Server origins so user dev servers (e.g., `http://localhost:3000`) opened inside Antigravity's built-in browser tabs are not injected with the RTL panel or direction overrides.
+- **Accurate Error & Exit-Code Reporting**: Separated missing `dist/utils.js` errors from missing injection-anchor errors in `patch-app.js`, reported `failed` vs `skipped (app running)` accurately in `--ensure`, returned non-zero exit codes on `--ensure` failure, and gated success output in `install.ps1` / `install.sh` on `$LASTEXITCODE` / exit status.
+
+### Changed
+- Centralized `PKG_VERSION` and `CURRENT_HOOK_REVISION` (`4`) in `src/core/meta.js` across CLI, `doctor`, `guard`, `patch-app`, `patch-ide`, and `patch-browser`.
+
 ## [3.0.0] - 2026-11-15
 
 ### Fixed

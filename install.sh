@@ -69,7 +69,9 @@ fi
 if [ "${AG_RTL_NO_PATCH:-0}" != "1" ]; then
   EXTRA=()
   [ "${AG_RTL_NO_GUARD:-0}" != "1" ] && EXTRA+=(--install-guard)
-  node "$INSTALL_DIR/src/cli.js" --ensure "${EXTRA[@]}" || true
+  if ! node "$INSTALL_DIR/src/cli.js" --ensure "${EXTRA[@]}"; then
+    echo "  [WARN] Some targets could not be patched automatically. Run 'antigravity-rtl-math --doctor' for details."
+  fi
 elif [ "${AG_RTL_NO_GUARD:-0}" != "1" ]; then
   node "$INSTALL_DIR/src/cli.js" --install-guard || true
 fi

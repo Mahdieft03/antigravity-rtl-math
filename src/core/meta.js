@@ -7,6 +7,10 @@ import os from 'os';
 import path from 'path';
 import { CONFIG_FILENAME, sanitizeConfig } from './config.js';
 
+const PKG = JSON.parse(fs.readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
+export const PKG_VERSION = PKG.version || '3.1.0';
+export const CURRENT_HOOK_REVISION = 4;
+
 export const META_FILENAME = '.antigravity-rtl-meta.json';
 
 export function getConfigFilePath(homeDir = os.homedir()) {

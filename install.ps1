@@ -137,7 +137,11 @@ try {
             Write-Host "    antigravity-rtl-math --ensure" -ForegroundColor White
         } else {
             & node @applyArgs
-            Write-Ok "Antigravity targets patched & verified!"
+            if ($LASTEXITCODE -eq 0) {
+                Write-Ok "Antigravity targets patched & verified!"
+            } else {
+                Write-Warn "Some targets could not be patched automatically. Run 'antigravity-rtl-math --doctor' for details."
+            }
         }
     } elseif (-not $NoGuard -and -not ($env:AG_RTL_NO_GUARD -eq "1")) {
         & node $cliPath --install-guard

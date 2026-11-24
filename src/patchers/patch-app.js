@@ -10,7 +10,7 @@ import ora from 'ora';
 import prompts from 'prompts';
 import * as asar from '@electron/asar';
 import { buildElectronClientScript } from '../core/client-bundle.js';
-import { isTempPath, updatePatchMeta } from '../core/meta.js';
+import { CURRENT_HOOK_REVISION, PKG_VERSION, isTempPath, updatePatchMeta } from '../core/meta.js';
 import { renderAppHookSnippet } from '../targets/app-hook.js';
 import { checkRunningAntigravity } from './process-check.js';
 
@@ -23,14 +23,36 @@ const { blue, green, red, yellow } = picocolors;
 export const PATCH_START = '/* ANTIGRAVITY RTL MATH PATCH */';
 export const PATCH_END = '/* END ANTIGRAVITY RTL MATH PATCH */';
 export const LEGACY_PATCH_START = '/* ANTIGRAVITY RTL PATCH */';
-const ANCHOR = 'void win.loadURL(url);';
+const LEGACY_ANCHOR = 'void win.loadURL(url);';
+
+export const ANCHOR_PATTERNS = [
+    /(?:void|await)\s+loadHubWindowUrl\(\s*win\s*,\s*url\b[^;\r\n]*\);/,
+    /(?:void|await)\s+win\.loadURL\(\s*url\b[^;\r\n]*\);/,
+    /(?:void|await)\s+hubContents\.loadURL\(\s*url\b[^;\r\n]*\);/
+];
 
 const NEW_PATCH_BLOCK = /\/\* ANTIGRAVITY RTL MATH PATCH \*\/[\s\S]*?\/\* END ANTIGRAVITY RTL MATH PATCH \*\//;
 const LEGACY_PATCH_BLOCK = /\/\* ANTIGRAVITY RTL PATCH \*\/[\s\S]*?\/\* END ANTIGRAVITY RTL PATCH \*\//;
+const ORIG_ANCHOR_MARKER_RE = /\/\* AG_RTL_ORIG_ANCHOR_START \*\/([\s\S]*?)\/\* AG_RTL_ORIG_ANCHOR_END \*\//;
+
+export function findInjectionAnchor(code) {
+    for (const re of ANCHOR_PATTERNS) {
+        const m = code.match(re);
+        if (m) return m[0];
+    }
+    return null;
+}
 
 function readUtils(asarFile) {
     asar.uncache(asarFile);
-    return asar.extractFile(asarFile, 'dist/utils.js').toString('utf8');
+    try {
+        return asar.extractFile(asarFile, 'dist/utils.js').toString('utf8');
+    } catch (err) {
+        throw Object.assign(
+            new Error('dist/utils.js not found in ASAR. Unsupported Antigravity version.'),
+            { code: 'ERR_UTILS_MISSING', cause: err }
+        );
+    }
 }
 
 function hasAnyPatch(code) {
@@ -38,8 +60,15 @@ function hasAnyPatch(code) {
 }
 
 function stripAnyPatch(code) {
-    if (NEW_PATCH_BLOCK.test(code)) return code.replace(NEW_PATCH_BLOCK, ANCHOR);
-    if (LEGACY_PATCH_BLOCK.test(code)) return code.replace(LEGACY_PATCH_BLOCK, ANCHOR);
+    if (NEW_PATCH_BLOCK.test(code)) {
+        const block = code.match(NEW_PATCH_BLOCK)[0];
+        const origMatch = block.match(ORIG_ANCHOR_MARKER_RE);
+        const restored = origMatch ? origMatch[1] : LEGACY_ANCHOR;
+        return code.replace(NEW_PATCH_BLOCK, () => restored);
+    }
+    if (LEGACY_PATCH_BLOCK.test(code)) {
+        return code.replace(LEGACY_PATCH_BLOCK, () => LEGACY_ANCHOR);
+    }
     return null;
 }
 
@@ -108,7 +137,9 @@ export function getAppStatus(asarPath = detectAppAsarPath()) {
         const utils = readUtils(asarPath);
         if (utils.includes(PATCH_START)) {
             patchState = 'rtl-math';
-            hookRevision = utils.includes('__agRtlAppHooked') ? 3 : 2;
+            hookRevision = utils.includes('__agRtlHookRev = 4')
+                ? 4
+                : (utils.includes('__agRtlAppHooked') ? 3 : 2);
         } else if (utils.includes(LEGACY_PATCH_START)) {
             patchState = 'legacy-rtl';
             hookRevision = 1;
@@ -262,8 +293,10 @@ export async function patchApp(asarPath, { exitOnError = true, checkProcess = tr
 
         failLabel = 'Injection failed.';
         spinner.text = 'Injecting RTL + Math Isolation engine...';
-        if (!cleanUtils.includes(ANCHOR)) {
-            throw new Error('Injection anchor "void win.loadURL(url);" not found in dist/utils.js.');
+        const anchorStmt = findInjectionAnchor(cleanUtils);
+        if (!anchorStmt) {
+            const appVer = readInstalledAppVersion(asarPath);
+            throw new Error(`Supported window load anchor not found in dist/utils.js${appVer ? ` (Antigravity v${appVer})` : ''}. Please update antigravity-rtl-math.`);
         }
 
         const clientTemplate = buildElectronClientScript({
@@ -272,8 +305,8 @@ export async function patchApp(asarPath, { exitOnError = true, checkProcess = tr
             fontBase64: '__FONT_BASE64__',
             initialConfig: '__RTL_CONFIG__'
         });
-        const hookSnippet = renderAppHookSnippet(clientTemplate);
-        const patchedUtils = cleanUtils.replace(ANCHOR, () => hookSnippet);
+        const hookSnippet = renderAppHookSnippet(clientTemplate, anchorStmt);
+        const patchedUtils = cleanUtils.replace(anchorStmt, () => hookSnippet);
 
         fs.writeFileSync(utilsPath, patchedUtils, 'utf8');
         fs.copyFileSync(FONT_SOURCE, fontDest);
@@ -287,8 +320,8 @@ export async function patchApp(asarPath, { exitOnError = true, checkProcess = tr
             const st = fs.statSync(asarPath);
             updatePatchMeta('app', {
                 path: asarPath,
-                patchVersion: '3.0.0',
-                hookRevision: 3,
+                patchVersion: PKG_VERSION,
+                hookRevision: CURRENT_HOOK_REVISION,
                 appVersion: readInstalledAppVersion(asarPath),
                 asarSize: st.size,
                 asarMtimeMs: st.mtimeMs
@@ -311,9 +344,7 @@ export async function patchApp(asarPath, { exitOnError = true, checkProcess = tr
                 console.error(yellow('\nClose Antigravity and run with sudo (on macOS also allow App Management for Terminal).\n'));
             }
         } else {
-            console.error(red(/dist\/utils\.js/.test(e.message)
-                ? 'dist/utils.js not found in ASAR. Unsupported Antigravity version.'
-                : e.message));
+            console.error(red(e.message));
         }
         if (exitOnError) process.exit(1);
         return false;
